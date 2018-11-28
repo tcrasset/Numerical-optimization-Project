@@ -1,0 +1,2 @@
+# Numerical-optimization-Project
+Data reconciliation of an industrial boiler: We consider an industrial boiler system whose purpose is to turn water into steam to spin steam turbines. The boiler consists of a burner and a heat exchanger. In Section A., the project focuses on the burner, where the combustion of natural gas and air takes place. In Section B., the project adds a heat exchanger which uses the hot exhausts from the burner to heat water. Data reconciliation is used to provide accurate measurements which fulfill material and energy conservation laws.
