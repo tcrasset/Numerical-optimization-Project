@@ -21,52 +21,40 @@ using Ipopt
 #------------------------ CONSTANTS --------------------------------------------------------
 
 #Masses molaires
-M_CH4 = 16.043
-M_O = 15.9994
-M_N = 14.0067
-M_Air = 28.9647
-M_CO2 = 44.01
+M_CH4 = 16.04246
+M_02 = 31.9988
+M_N2 = 28.0134
+M_Air = 28.850334
+M_CO2 = 44.0095
 M_H20 = 18.01528
+#Coefficients réactions
+coeff_CH4 = 1
+coeff_02 = 2
+coeff_N2 = 2 * (79/21)
+coeff_Air = coeff_02 + coeff_N2
+coeff_CO2 = 1
+coeff_H20 = 2
+
 
 #Nb moles totales
-X = 1 + 2 + 2*79/21
-
-#Nb moles reactifs
-n_CH4 = 1
-n_O2 = 2
-n_N2 = 2 * 79/21
+n_reactifs_tots = coeff_CH4 + coeff_Air
+n_produits_tots = coeff_CO2 + coeff_H20 + coeff_N2
 
 #Fractions molaires réactifs
-x_CH4 = n_CH4/ X
-x_Air = (n_O2 + n_N2)/X 
-x_O2 = n_O2/X 
-x_N2 = n_N2/X
+x_CH4 = coeff_CH4/n_reactifs_tots
+x_Air = coeff_Air/ n_reactifs_tots
+x_O2 = coeff_02/ n_reactifs_tots
+x_N2 = coeff_N2/n_reactifs_tots
 
-#Test == 1 :
-x_CH4 + x_Air == 1.0
-x_CH4 + x_O2 + x_N2 == 1.0
+#Fractions molaires produits
+x_C02 = coeff_C02/n_produits_tots
+x_H20 = coeff_H2O/ n_produits_tots
+x_N2 = coeff_N2/n_produits_tots
 
 #Masse molaire moyenne
-M = x_CH4* M_CH4 + x_O2*2*M_O + x_N2*2*M_N 
+M_reactifs = x_CH4 * M_CH4 + coeff_Air * M_Air
+M_produits = x_C02 * M_CO2 + x_H20 * M_H20 + x_N2 * M_N2
 
-#Fractions massiques
-w_O2 = x_O2 * 2*M_O / M
-w_CH4 = x_CH4 * M_CH4 / M
-w_N2 = x_N2 * 2*M_N / M
-
-#Test == 1 :
-w_O2 + w_CH4 + w_N2 == 1.0
-
-#Loi des gaz parfaits
-pV = nRT
-V = nRT #p == 1 atm
-# V = n * 8.2057*10.0^(-5) * (celsius + 273.15) 
-
-V_O2 =  x_O2 * 8.2057*10.0^(-5) * (25 + 273.15) 
-V_CH4 =  x_CH4 * 8.2057*10.0^(-5) * (25 + 273.15) 
-V_N2 =  x_N2 * 8.2057*10.0^(-5) * (25 + 273.15) 
-
-V_O2+ V_CH4 + V_N2 == V #Not true bc of floating point arithmetic
 
 
 
@@ -81,9 +69,7 @@ function V_to_N_gaslaw(P::Float64, T::Float64,V::Float64)
         T - temperature in Celsius
         V - volume in m3
     """
-    
     return (P * 1000 * V)/(0.08205 * (273.15 + T))
-
 end
 
 
@@ -97,54 +83,43 @@ print(measurements.wi_NaturalGas)
 print(measurements.wi_Fumes)
 
 length(measurements.V_Air)
-w_i_sum_Fumes = [sum(measurements.wi_Fumes[1],1),sum(measurements.wi_Fumes[2],1),sum(measurements.wi_Fumes[3],1)]
 
-print(sum_w_i_Fumes[1])
-
-print(w_i_sum_Fumes[1][1])
 #Solve for wi_Air
 
 
 
 
 m = Model(solver=IpoptSolver())
-# m = Model(solver=CplexSolver())
+n_Obs = length(measurements.V_Air)
 
-@variable(m, wi_Air >= 0)
-for t = 1:length(measurements.V_Air[1])
+for t = 1:n_Obs
+
+    #The measure of V is imprecise
+    n_CH4_measured = V_to_N_gaslaw(P_CH4,T_CH4,measurements.V_NaturalGas[t])
+    n_Air_measured = V_to_N_gaslaw(P_Air,T_Air,measurements.V_Air[t])
+
+    n_O2_measured = n_Air_measured -  #Comment je calcules n_O2 a partir de N_Air ?
+    n_N2_measured #???
+
+    #Quand est ce que je divise par n_reactifs_tots pour avoir la fraction massique ?
+
+    #OU est ce que je mets l'erreur de mesure ? Dans V ? Dans n_measured ? Dans n_consumed ?
+
+    #Assume that there is a little bit more that was consumed than what was measured
+    n_CH4_consumed = coeff_CH4 * (n_CH4_measured + err_CH4)  # 1 mol CH4
+    n_O2_consumed = n_O2_measured - coeff_02 * (n_CH4_measured + err_CH4) # 2 mol O2
+    n_N2_consumed = n_N2_measured - coeff_N2 * (n_CH4_measured + err_CH4) # 2 * 79/21 mol N2
+
+
+    #j'ai commencé à écrire les choses en fractions massiques puis j'ai changé en haut donc ce qui suit 
+    # est faux d'un facteur n_produits_tots
     
-    #Doesnt add up 
-    # @constraint(m, measurements.V_NaturalGas + measurements.V_Air - measurements.V_HotFumes == 0)
-    
-    #Doesn"t work for iteration 3
-    #@constraint(m, measurements.wi_NaturalGas[1][t] - wi_Air - w_i_sum_Fumes[t][1] == 0)
+    #Verify that what is measured exactly (mass percentage) is actually what is coming out
+    @constraint(measurements.wi_Fumes[1][t] == coeff_C02 * (1/M_produits) * x_consumed * M_CH4)     #1 mol CO2
+    @constraint(measurements.wi_Fumes[2][t] == coeff_H20 * (1/M_produits) * x_consumed * M_H20) # 2 mol H20
+    @constraint(measurements.wi_Fumes[3][t] == coeff_N2 * (1/M_produits) * x_consumed * M_N2) # 2 * 79/21 mol N2
+
+
     
     solve(m)
-    println(getvalue(wi_Air))
 end
-
-#t = 1
-m = Model(solver=IpoptSolver())
-@variable(m, wi_Air >= 0)
-@constraint(m, measurements.wi_NaturalGas[1][1] - wi_Air - w_i_sum_Fumes[1][1] == 0)
-solve(m)
-println(getvalue(wi_Air))
-#t = 2
-m = Model(solver=IpoptSolver())
-@variable(m, wi_Air >= 0)
-@constraint(m, measurements.wi_NaturalGas[1][2] - wi_Air - w_i_sum_Fumes[2][1] == 0)
-solve(m)
-println(getvalue(wi_Air))
-#t = 3
-m = Model(solver=IpoptSolver())
-@variable(m, wi_Air >= 0)
-@constraint(m, measurements.wi_NaturalGas[1][3] - wi_Air - w_i_sum_Fumes[3][1] == 0)
-solve(m)
-println(getvalue(wi_Air))
-#t = 4
-m = Model(solver=IpoptSolver())
-@variable(m, wi_Air >= 0)
-@constraint(m, measurements.wi_NaturalGas[1][4] - wi_Air - w_i_sum_Fumes[4][1] == 0)
-solve(m)
-println(getvalue(wi_Air))
-
