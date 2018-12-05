@@ -16,21 +16,9 @@ using Ipopt
 #     wi_NaturalGas::Array{Array{Float64}} # order : CH4, C2H6, C3H8
 #     wi_Fumes::Array{Array{Float64}} # order : CO2, H2O, N2
 # end
-measurements = loadDataFromFile("q1_easy")
-
-print(measurements.V_NaturalGas)
-print(measurements.V_Air)
-print(measurements.V_HotFumes)
-print(measurements.wi_NaturalGas)
-print(measurements.wi_Fumes)
-
-length(measurements.V_Air)
-w_i_sum_Fumes = [sum(measurements.wi_Fumes[1],1),sum(measurements.wi_Fumes[2],1),sum(measurements.wi_Fumes[3],1)]
 
 
-print(sum_w_i_Fumes[1])
-phi_i = x_i # Ideal gas law
-
+#------------------------ CONSTANTS --------------------------------------------------------
 
 #Masses molaires
 M_CH4 = 16.043
@@ -80,6 +68,38 @@ V_N2 =  x_N2 * 8.2057*10.0^(-5) * (25 + 273.15)
 
 V_O2+ V_CH4 + V_N2 == V #Not true bc of floating point arithmetic
 
+
+
+#------------------------ END OF CONSTANTS --------------------------------------------------------
+
+
+#------------------------FUNCTIONS --------------------------------------------------------------
+
+function V_to_N_gaslaw(P::Float64, T::Float64,V::Float64)
+    """Params 
+        P - pressure in atm
+        T - temperature in Celsius
+        V - volume in m3
+    """
+    
+    return (P * 1000 * V)/(0.08205 * (273.15 + T))
+
+end
+
+
+#------------------------ MODEL ---------------------------------------------------------------------
+measurements = loadDataFromFile("q1_easy")
+
+print(measurements.V_NaturalGas)
+print(measurements.V_Air)
+print(measurements.V_HotFumes)
+print(measurements.wi_NaturalGas)
+print(measurements.wi_Fumes)
+
+length(measurements.V_Air)
+w_i_sum_Fumes = [sum(measurements.wi_Fumes[1],1),sum(measurements.wi_Fumes[2],1),sum(measurements.wi_Fumes[3],1)]
+
+print(sum_w_i_Fumes[1])
 
 print(w_i_sum_Fumes[1][1])
 #Solve for wi_Air
