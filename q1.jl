@@ -1,4 +1,5 @@
 include("./data_struct.jl")
+
 using Data
 using JuMP
 
@@ -22,38 +23,42 @@ using Ipopt
 
 #Masses molaires
 M_CH4 = 16.04246
-M_02 = 31.9988
+M_O2 = 31.9988
 M_N2 = 28.0134
 M_Air = 28.850334
 M_CO2 = 44.0095
-M_H20 = 18.01528
+M_H2O = 18.01528
+
+#Pressions
+P_Air = 1
+P_CH4 = 1
+P_HotFumes = 1
+
+#Temperature
+T_CH4 = 25
+T_Air = 25
+T_HotFumes = 1600
+
 #Coefficients réactions
 coeff_CH4 = 1
-coeff_02 = 2
+coeff_O2 = 2
 coeff_N2 = 2 * (79/21)
-coeff_Air = coeff_02 + coeff_N2
+coeff_Air = coeff_O2 + coeff_N2
 coeff_CO2 = 1
-coeff_H20 = 2
+coeff_H2O = 2
+
+# #Fractions molaires réactifs
+# x_CH4 = coeff_CH4/n_reactifs_tots
+# x_Air = coeff_Air/ n_reactifs_tots
+# x_O2 = coeff_02/ n_reactifs_tots
+# x_N2 = coeff_N2/n_reactifs_tots
+
+# #Fractions molaires produits
+# x_C02 = coeff_C02/n_produits_tots
+# x_H20 = coeff_H2O/ n_produits_tots
+# x_N2 = coeff_N2/n_produits_tots
 
 
-#Nb moles totales
-n_reactifs_tots = coeff_CH4 + coeff_Air
-n_produits_tots = coeff_CO2 + coeff_H20 + coeff_N2
-
-#Fractions molaires réactifs
-x_CH4 = coeff_CH4/n_reactifs_tots
-x_Air = coeff_Air/ n_reactifs_tots
-x_O2 = coeff_02/ n_reactifs_tots
-x_N2 = coeff_N2/n_reactifs_tots
-
-#Fractions molaires produits
-x_C02 = coeff_C02/n_produits_tots
-x_H20 = coeff_H2O/ n_produits_tots
-x_N2 = coeff_N2/n_produits_tots
-
-#Masse molaire moyenne
-M_reactifs = x_CH4 * M_CH4 + coeff_Air * M_Air
-M_produits = x_C02 * M_CO2 + x_H20 * M_H20 + x_N2 * M_N2
 
 
 
@@ -63,7 +68,7 @@ M_produits = x_C02 * M_CO2 + x_H20 * M_H20 + x_N2 * M_N2
 
 #------------------------FUNCTIONS --------------------------------------------------------------
 
-function V_to_N_gaslaw(P::Float64, T::Float64,V::Float64)
+function V_to_N_gaslaw(P::Int64, T::Int64,V::Float64)
     """Params 
         P - pressure in atm
         T - temperature in Celsius
@@ -91,35 +96,53 @@ length(measurements.V_Air)
 
 m = Model(solver=IpoptSolver())
 n_Obs = length(measurements.V_Air)
+@objective(min (sum(erreur)))
+# for t = 1:n_Obs
 
-for t = 1:n_Obs
+
+    @variable(m, err_CH4)
+    @variable(m, err_Air)
+    @variable(m, V_CH4_measured >= 0)
+    @variable(m, V_Air_measured >= 0)
+    @variable(m, V_HotFumes_measured >= 0)
 
     #The measure of V is imprecise
-    n_CH4_measured = V_to_N_gaslaw(P_CH4,T_CH4,measurements.V_NaturalGas[t])
-    n_Air_measured = V_to_N_gaslaw(P_Air,T_Air,measurements.V_Air[t])
-
-    n_O2_measured = n_Air_measured -  #Comment je calcules n_O2 a partir de N_Air ?
-    n_N2_measured #???
-
-    #Quand est ce que je divise par n_reactifs_tots pour avoir la fraction massique ?
-
-    #OU est ce que je mets l'erreur de mesure ? Dans V ? Dans n_measured ? Dans n_consumed ?
-
-    #Assume that there is a little bit more that was consumed than what was measured
-    n_CH4_consumed = coeff_CH4 * (n_CH4_measured + err_CH4)  # 1 mol CH4
-    n_O2_consumed = n_O2_measured - coeff_02 * (n_CH4_measured + err_CH4) # 2 mol O2
-    n_N2_consumed = n_N2_measured - coeff_N2 * (n_CH4_measured + err_CH4) # 2 * 79/21 mol N2
-
-
-    #j'ai commencé à écrire les choses en fractions massiques puis j'ai changé en haut donc ce qui suit 
-    # est faux d'un facteur n_produits_tots
-    
-    #Verify that what is measured exactly (mass percentage) is actually what is coming out
-    @constraint(measurements.wi_Fumes[1][t] == coeff_C02 * (1/M_produits) * x_consumed * M_CH4)     #1 mol CO2
-    @constraint(measurements.wi_Fumes[2][t] == coeff_H20 * (1/M_produits) * x_consumed * M_H20) # 2 mol H20
-    @constraint(measurements.wi_Fumes[3][t] == coeff_N2 * (1/M_produits) * x_consumed * M_N2) # 2 * 79/21 mol N2
+    @constraint(V_CH4_measured == measurements.V_NaturalGas[1] + err_CH4)
+    @constraint(V_Air_measured == measurements.V_Air[1] + err_Air)
+    @constraint(V_HotFumes_measured == measurements.V_HotFumes[1] + err_Air)
 
 
     
-    solve(m)
-end
+    n_CH4_measured = V_to_N_gaslaw(P_CH4,T_CH4,V_CH4_measured)
+    n_Air_measured = V_to_N_gaslaw(P_Air,T_Air,V_Air_measured)
+    
+    
+    n_O2_measured = 21/100 * n_Air_measured
+    n_N2_measured = 79/100 * n_Air_measured
+    
+    n_reactifs_tots = n_Air_measured + n_CH4_measured
+    
+    x_O2 = n_O2_measured/n_reactifs_tots
+    x_N2 = n_N2_measured/n_reactifs_tots
+    x_CH4 = n_CH4_measured/n_reactifs_tots
+    
+    
+    n_produits_tots = n_CH4_measured * (coeff_CO2 + coeff_H2O + coeff_N2)
+    
+    x_CO2 = coeff_CO2/n_produits_tots
+    x_H2O = coeff_H2O/ n_produits_tots
+    x_N2 = coeff_N2/n_produits_tots
+    
+    # #Masse molaire moyenne
+    M_reactifs = x_CH4 * M_CH4 + x_N2 * M_N2 + x_O2 * M_O2
+    M_produits = x_C02 * M_CO2 + x_H20 * M_H20 + x_N2 * M_N2
+    
+    @contraint(measurements.wi_Fumes[1][t] == x_CO2 * (M_CO2/M_produits))
+    @contraint(measurements.wi_Fumes[2][t] == x_H2O * (M_H2O/M_produits))
+    @contraint(measurements.wi_Fumes[3][t] == x_N2 * (M_N2/M_produits))
+
+    @contraint(measurements.wi_NaturalGas[1][1] == x_CH4 * (M_CH4/M_reactifs))
+
+    
+#     solve(m)
+# end
