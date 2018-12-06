@@ -97,14 +97,18 @@ length(measurements.V_Air)
 m = Model(solver=IpoptSolver())
 n_Obs = length(measurements.V_Air)
 
-@objective(m, Min, bound)
+@objective(m, Min, err_CH4_bound + err_Air_bound + err_Hot_bound)
 # for t = 1:n_Obs
-    #Transform non linear programming into a linear programming problem
-    @constraint(m, -bound <= err_CH4 + err_Air + err_Hot <= bound)
-    @variable(m, bound >= 0)
 
     @variable(m, err_CH4)
     @variable(m, err_Air)
+    @variable(m, err_Hot)
+
+    #Transform non linear programming into a linear programming problem
+    @constraint(m, -err_CH4_bound <= err_CH4  <= err_CH4_bound)
+    @constraint(m, -err_Air_bound <= err_Air <= err_Air_bound)
+    @constraint(m, -err_Hot_bound <= err_Hot <= err_Hot_bound)
+
     @variable(m, V_CH4_measured >= 0)
     @variable(m, V_Air_measured >= 0)
     @variable(m, V_HotFumes_measured >= 0)
