@@ -104,6 +104,10 @@ n_Obs = length(measurements.V_Air)
     @variable(m, err_Air)
     @variable(m, err_Hot)
 
+    @constraint(m, err_CH4_bound >= 0)
+    @constraint(m, err_Air_bound >= 0)
+    @constraint(m, err_Hot_bound >= 0)
+
     #Transform non linear programming into a linear programming problem
     @constraint(m, -err_CH4_bound <= err_CH4  <= err_CH4_bound)
     @constraint(m, -err_Air_bound <= err_Air <= err_Air_bound)
