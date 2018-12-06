@@ -114,9 +114,9 @@ print(m)
 
 solve(m)
 
-println("Objective value: ", getObjectiveValue(m))
-println("err_CH4_bound = ", getValue(err_CH4_bound))
-println("err_Air_bound = ", getValue(err_Air_bound))
-println("err_Hot_bound = ", getValue(err_Hot_bound))
+println("Objective value: ", getobjectivevalue(m))
+println("err_CH4_bound = ", getvalue(err_CH4_bound))
+println("err_Air_bound = ", getvalue(err_Air_bound))
+println("err_Hot_bound = ", getvalue(err_Hot_bound))
 
 
