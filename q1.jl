@@ -96,9 +96,12 @@ length(measurements.V_Air)
 
 m = Model(solver=IpoptSolver())
 n_Obs = length(measurements.V_Air)
-@objective(min (sum(erreur)))
-# for t = 1:n_Obs
 
+@objective(m, Min, bound)
+# for t = 1:n_Obs
+    #Transform non linear programming into a linear programming problem
+    @constraint(m, -bound <= err_CH4 + err_Air + err_Hot <= bound)
+    @variable(m, bound >= 0)
 
     @variable(m, err_CH4)
     @variable(m, err_Air)
