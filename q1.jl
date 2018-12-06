@@ -3,11 +3,12 @@ include("./data_struct.jl")
 using Data
 using JuMP
 
-Pkg.add("Ipopt")
-using Ipopt
-# Pkg.add("CPLEX")
-# using CPLEX
-
+# Pkg.add("Ipopt")
+# using Ipopt
+Pkg.add("CPLEX")
+using CPLEX
+# Pkg.add("Gurobi")
+# using Gurobi
 ###################################################
 
 # struct Measurements
@@ -35,9 +36,9 @@ P_CH4 = 1
 P_HotFumes = 1
 
 #Temperature
-T_CH4 = 25
-T_Air = 25
-T_HotFumes = 1600
+T_CH4 = 25 + 273.15
+T_Air = 25 + 273.15
+T_HotFumes = 1600 + 273.15
 
 #Coefficients réactions
 coeff_CH4 = 1
@@ -68,92 +69,54 @@ coeff_H2O = 2
 
 #------------------------FUNCTIONS --------------------------------------------------------------
 
-function V_to_N_gaslaw(P::Int64, T::Int64,V::Float64)
-    """Params 
-        P - pressure in atm
-        T - temperature in Celsius
-        V - volume in m3
-    """
-    return (P * 1000 * V)/(0.08205 * (273.15 + T))
-end
-
-
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q1_easy")
 
-print(measurements.V_NaturalGas)
-print(measurements.V_Air)
-print(measurements.V_HotFumes)
-print(measurements.wi_NaturalGas)
-print(measurements.wi_Fumes)
-
-length(measurements.V_Air)
-
-#Solve for wi_Air
-
-
-
-
-m = Model(solver=IpoptSolver())
+m = Model(solver=CplexSolver())
 n_Obs = length(measurements.V_Air)
 
+
+
+@variable(m, err_CH4_bound >= 0.0)
+@variable(m, err_Air_bound >= 0.0)
+@variable(m, err_Hot_bound >= 0.0)
+
+@variable(m, V_CH4 >= 0.0)
+@variable(m, V_Air >= 0.0)
+@variable(m, V_HotFumes >= 0.0)
+@variable(m, V_O2 >= 0.0)
+@variable(m, V_CO2 >= 0.0)
+@variable(m, V_H2O >= 0.0)
+
 @objective(m, Min, err_CH4_bound + err_Air_bound + err_Hot_bound)
-# for t = 1:n_Obs
 
-    @variable(m, err_CH4)
-    @variable(m, err_Air)
-    @variable(m, err_Hot)
+#Transformer les volumes d'air et de hotfumes en leur composants
+#N2 ne participe pas à la réaction
+@constraint(m, V_O2 == V_Air/(1 + (79/21)))
+@constraint(m, V_CO2 == V_HotFumes/(1 + 2 + 2*(79/21)))
+@constraint(m, V_H2O == (V_HotFumes * 2)/(1 + 2 + 2*(79/21)))
 
-    @constraint(m, err_CH4_bound >= 0)
-    @constraint(m, err_Air_bound >= 0)
-    @constraint(m, err_Hot_bound >= 0)
+#Mettre l'eqaution en contraintes
+@constraint(m, V_CH4/T_CH4 == V_CO2/T_HotFumes)
+@constraint(m, V_CH4/T_CH4 == 0.5 * V_H2O/T_HotFumes)
+@constraint(m, V_CH4/T_CH4 == 0.5 * V_O2/T_HotFumes)
 
-    #Transform non linear programming into a linear programming problem
-    @constraint(m, -err_CH4_bound <= err_CH4  <= err_CH4_bound)
-    @constraint(m, -err_Air_bound <= err_Air <= err_Air_bound)
-    @constraint(m, -err_Hot_bound <= err_Hot <= err_Hot_bound)
+#Linearisation
+@constraint(m, -err_CH4_bound <= measurements.V_NaturalGas[1] - V_CH4 )
+@constraint(m, measurements.V_NaturalGas[1] - V_CH4  <= err_CH4_bound)
+@constraint(m, -err_Air_bound <= measurements.V_Air[1] - V_Air)
+@constraint(m, measurements.V_Air[1] - V_Air <= err_Air_bound)
+@constraint(m, -err_Hot_bound <= measurements.V_HotFumes[1] - V_HotFumes)
+@constraint(m, measurements.V_HotFumes[1] - V_HotFumes <= err_Hot_bound)
 
-    @variable(m, V_CH4_measured >= 0)
-    @variable(m, V_Air_measured >= 0)
-    @variable(m, V_HotFumes_measured >= 0)
+println("The optimization problem to be solved is:")
+print(m)
 
-    #The measure of V is imprecise
-    @constraint(V_CH4_measured == measurements.V_NaturalGas[1] + err_CH4)
-    @constraint(V_Air_measured == measurements.V_Air[1] + err_Air)
-    @constraint(V_HotFumes_measured == measurements.V_HotFumes[1] + err_Air)
+solve(m)
+
+println("Objective value: ", getObjectiveValue(m))
+println("err_CH4_bound = ", getValue(err_CH4_bound))
+println("err_Air_bound = ", getValue(err_Air_bound))
+println("err_Hot_bound = ", getValue(err_Hot_bound))
 
 
-    
-    n_CH4_measured = V_to_N_gaslaw(P_CH4,T_CH4,V_CH4_measured)
-    n_Air_measured = V_to_N_gaslaw(P_Air,T_Air,V_Air_measured)
-    
-    
-    n_O2_measured = 21/100 * n_Air_measured
-    n_N2_measured = 79/100 * n_Air_measured
-    
-    n_reactifs_tots = n_Air_measured + n_CH4_measured
-    
-    x_O2 = n_O2_measured/n_reactifs_tots
-    x_N2 = n_N2_measured/n_reactifs_tots
-    x_CH4 = n_CH4_measured/n_reactifs_tots
-    
-    
-    n_produits_tots = n_CH4_measured * (coeff_CO2 + coeff_H2O + coeff_N2)
-    
-    x_CO2 = coeff_CO2/n_produits_tots
-    x_H2O = coeff_H2O/ n_produits_tots
-    x_N2 = coeff_N2/n_produits_tots
-    
-    # #Masse molaire moyenne
-    M_reactifs = x_CH4 * M_CH4 + x_N2 * M_N2 + x_O2 * M_O2
-    M_produits = x_C02 * M_CO2 + x_H20 * M_H20 + x_N2 * M_N2
-    
-    @contraint(measurements.wi_Fumes[1][t] == x_CO2 * (M_CO2/M_produits))
-    @contraint(measurements.wi_Fumes[2][t] == x_H2O * (M_H2O/M_produits))
-    @contraint(measurements.wi_Fumes[3][t] == x_N2 * (M_N2/M_produits))
-
-    @contraint(measurements.wi_NaturalGas[1][1] == x_CH4 * (M_CH4/M_reactifs))
-
-    
-#     solve(m)
-# end
