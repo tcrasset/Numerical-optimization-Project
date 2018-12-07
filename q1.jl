@@ -3,15 +3,9 @@ include("./data_struct.jl")
 using Data
 using JuMP
 
-# Pkg.add("Ipopt")
-# using Ipopt
 Pkg.add("Clp")
 using Clp
-Pkg.add("CPLEX")
-using CPLEX
 
-# Pkg.add("Gurobi")
-# using Gurobi
 ###################################################
 
 # struct Measurements
@@ -21,6 +15,7 @@ using CPLEX
 #     wi_NaturalGas::Array{Array{Float64}} # order : CH4, C2H6, C3H8
 #     wi_Fumes::Array{Array{Float64}} # order : CO2, H2O, N2
 # end
+###################################################
 
 
 #------------------------ CONSTANTS --------------------------------------------------------
@@ -51,22 +46,6 @@ coeff_Air = coeff_O2 + coeff_N2
 coeff_CO2 = 1
 coeff_H2O = 2
 
-# #Fractions molaires réactifs
-# x_CH4 = coeff_CH4/n_reactifs_tots
-# x_Air = coeff_Air/ n_reactifs_tots
-# x_O2 = coeff_02/ n_reactifs_tots
-# x_N2 = coeff_N2/n_reactifs_tots
-
-# #Fractions molaires produits
-# x_C02 = coeff_C02/n_produits_tots
-# x_H20 = coeff_H2O/ n_produits_tots
-# x_N2 = coeff_N2/n_produits_tots
-
-
-
-
-
-
 #------------------------ END OF CONSTANTS --------------------------------------------------------
 
 
@@ -74,10 +53,6 @@ coeff_H2O = 2
 
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q1_easy")
-
-
-
-
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
@@ -92,7 +67,7 @@ time = 1:n_Obs
 @variable(m,  V_CO2[time] >= 0.0)
 @variable(m,  V_H2O[time] >= 0.0)
 
-@objective(m, Min, err_CH4_bound[time] + err_Air_bound[time] + err_Hot_bound[time])
+@objective(m, Min, sum(err_CH4_bound) + sum(err_Air_bound) + sum(err_Hot_bound))
 
 #Transformer les volumes d'air et de hotfumes en leur composants
 #N2 ne participe pas à la réaction
