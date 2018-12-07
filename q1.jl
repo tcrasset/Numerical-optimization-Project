@@ -53,9 +53,6 @@ coeff_H2O = 2
 
 #------------------------ MODEL ---------------------------------------------------------------------
 
-
-
-
 measurements = loadDataFromFile("q1_easy")
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
@@ -68,8 +65,6 @@ m = Model(solver=ClpSolver())
 @variable(m,  V_Air[time] >= 0.0)
 @variable(m,  V_HotFumes[time] >= 0.0)
 @variable(m,  V_O2[time] >= 0.0)
-# @variable(m,  V_CO2[time] >= 0.0)
-# @variable(m,  V_H2O[time] >= 0.0)
 
 @objective(m, Min, sum(err_CH4_bound) + sum(err_Air_bound) + sum(err_Hot_bound))
 
@@ -85,9 +80,9 @@ m = Model(solver=ClpSolver())
 
 M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 
-@constraint(m, V_CH4[time]/T_CH4 .== (coeff_CO2/coeff_CH4) * measurements.wi_Fumes[1][time] ./(M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
-@constraint(m, V_CH4[time]/T_CH4 .== (coeff_H2O/coeff_CH4) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
-@constraint(m, V_CH4[time]/T_CH4 .== (coeff_O2/coeff_CH4) * 21/100 * V_Air[time])
+@constraint(m, V_CH4[time]/T_CH4 .== (coeff_CH4/coeff_CO2) * measurements.wi_Fumes[1][time] ./(M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
+@constraint(m, V_CH4[time]/T_CH4 .== (coeff_CH4/coeff_H2O) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
+@constraint(m, V_CH4[time]/T_CH4 .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air) * (M_Air/M_O2))
 
 # @constraint(m,V_CH4/T_CH4 + 2 * V_O2/T_Air .==  V_CO2/T_HotFumes + 2 * V_H2O/T_HotFumes)
 
