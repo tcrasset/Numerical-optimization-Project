@@ -59,7 +59,7 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_CO2) * measurements.wi_Fumes[1][time] ./(M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_H2O) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
-@constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air) * (M_Air/M_O2))
+@constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air))
 
 #Linearisation
 @constraint(m, -err_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time] )
@@ -83,4 +83,3 @@ if(status == :Optimal)
     println(getvalue(V_Air))
     println(getvalue(V_HotFumes))
 end
-
