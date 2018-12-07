@@ -75,7 +75,6 @@ m = Model(solver=ClpSolver())
 
 #Transformer les volumes d'air et de hotfumes en leur composants
 #N2 ne participe pas à la réaction
-@constraint(m, V_O2[time] .==  0.21 * V_Air[time])
 # @constraint(m, V_CO2[time] .== V_HotFumes[time]/(1 + 2 + 2*(79/21)))
 # @constraint(m, V_H2O[time] .== (V_HotFumes[time] * 2)/(1 + 2 + 2*(79/21)))
 
@@ -88,7 +87,7 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 
 @constraint(m, V_CH4[time]/T_CH4 .== (coeff_CO2/coeff_CH4) * measurements.wi_Fumes[1][time] ./(M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
 @constraint(m, V_CH4[time]/T_CH4 .== (coeff_H2O/coeff_CH4) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
-@constraint(m, V_O2[time]/T_Air .==  (coeff_CO2/coeff_O2) * measurements.wi_Fumes[1][time] ./ (M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
+@constraint(m, V_CH4[time]/T_CH4 .== (coeff_O2/coeff_CH4) * 21/100 * V_Air[time])
 
 # @constraint(m,V_CH4/T_CH4 + 2 * V_O2/T_Air .==  V_CO2/T_HotFumes + 2 * V_H2O/T_HotFumes)
 
@@ -103,14 +102,17 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 println("The optimization problem to be solved is:")
 print(m)
 
-solve(m)
 
-println("Objective value: ", getobjectivevalue(m))
-println(getvalue(err_CH4_bound))
-println(getvalue(err_Air_bound))
-println(getvalue(err_Hot_bound))
-println(getvalue(V_CH4))
-println(getvalue(V_Air))
-println(getvalue(V_HotFumes))
+status = solve(m)
+	
+if(status == :Optimal)
 
+    println("Objective value: ", getobjectivevalue(m))
+    println(getvalue(err_CH4_bound))
+    println(getvalue(err_Air_bound))
+    println(getvalue(err_Hot_bound))
+    println(getvalue(V_CH4))
+    println(getvalue(V_Air))
+    println(getvalue(V_HotFumes))
+end
 
