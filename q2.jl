@@ -17,8 +17,7 @@ using Clp
 # end
 ###################################################
 
-#------------------------ CONSTANTS --------------------------------------------------------
-
+#------------------------ CONSTANTS -----------------------
 #Masses molaires
 M_CH4 = 16.04246
 M_C2H6 = 30.06904
@@ -52,10 +51,6 @@ coeff_H2O_C3H8 = 4
 coeff_O2_C3H8 = 5
 
 
-#------------------------ END OF CONSTANTS --------------------------------------------------------
-
-
-
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q2")
 
@@ -66,18 +61,14 @@ time = 1:n_Obs
 @variable(m, err_Hot_bound[time] >= 0.0)
 @variable(m, err_NG_bound[time] >= 0.0)
 
-
 @variable(m,  V_NG[time] >= 0.0)
 @variable(m,  V_HotFumes[time] >= 0.0)
 @variable(m,  V_Air[time] >= 0.0)
-
-
 
 @objective(m, Min, sum(err_NG_bound) + sum(err_Air_bound) + sum(err_Hot_bound))
 
 #Transformer les volumes d'air et de hotfumes en leur composants
 #N2 ne participe pas à la réaction
-
 M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGas[2][time]/M_C2H6 + measurements.wi_NaturalGas[3][time]/M_C3H8
 M_Air_Inv = 1/(0.21 * M_O2 + 0.79 * M_N2)
