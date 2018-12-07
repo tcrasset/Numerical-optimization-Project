@@ -5,8 +5,11 @@ using JuMP
 
 # Pkg.add("Ipopt")
 # using Ipopt
+Pkg.add("Clp")
+using Clp
 Pkg.add("CPLEX")
 using CPLEX
+
 # Pkg.add("Gurobi")
 # using Gurobi
 ###################################################
@@ -72,42 +75,45 @@ coeff_H2O = 2
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q1_easy")
 
-m = Model(solver=CplexSolver())
-n_Obs = length(measurements.V_Air)
 
 
 
-@variable(m, err_CH4_bound >= 0.0)
-@variable(m, err_Air_bound >= 0.0)
-@variable(m, err_Hot_bound >= 0.0)
+m = Model(solver=ClpSolver())
+n_Obs = length(measurements.V_NaturalGas)
+time = 1:n_Obs
+@variable(m, err_Air_bound[time] >= 0.0)
+@variable(m, err_Hot_bound[time] >= 0.0)
+@variable(m, err_CH4_bound[time] >= 0.0)
 
-@variable(m, V_CH4 >= 0.0)
-@variable(m, V_Air >= 0.0)
-@variable(m, V_HotFumes >= 0.0)
-@variable(m, V_O2 >= 0.0)
-@variable(m, V_CO2 >= 0.0)
-@variable(m, V_H2O >= 0.0)
+@variable(m,  V_CH4[time] >= 0.0)
+@variable(m,  V_Air[time] >= 0.0)
+@variable(m,  V_HotFumes[time] >= 0.0)
+@variable(m,  V_O2[time] >= 0.0)
+@variable(m,  V_CO2[time] >= 0.0)
+@variable(m,  V_H2O[time] >= 0.0)
 
-@objective(m, Min, err_CH4_bound + err_Air_bound + err_Hot_bound)
+@objective(m, Min, err_CH4_bound[time] + err_Air_bound[time] + err_Hot_bound[time])
 
 #Transformer les volumes d'air et de hotfumes en leur composants
 #N2 ne participe pas à la réaction
-@constraint(m, V_O2 == V_Air/(1 + (79/21)))
-@constraint(m, V_CO2 == V_HotFumes/(1 + 2 + 2*(79/21)))
-@constraint(m, V_H2O == (V_HotFumes * 2)/(1 + 2 + 2*(79/21)))
+@constraint(m, V_O2[time] .== V_Air[time]/(1 + (79/21)))
+@constraint(m, V_CO2[time] .== V_HotFumes[time]/(1 + 2 + 2*(79/21)))
+@constraint(m, V_H2O[time] .== (V_HotFumes[time] * 2)/(1 + 2 + 2*(79/21)))
 
-#Mettre l'eqaution en contraintes
-@constraint(m, V_CH4/T_CH4 == V_CO2/T_HotFumes)
-@constraint(m, V_CH4/T_CH4 == 0.5 * V_H2O/T_HotFumes)
-@constraint(m, V_CH4/T_CH4 == 0.5 * V_O2/T_HotFumes)
+# #Mettre l'eqaution en contraintes
+@constraint(m, V_CH4[time]/T_CH4 .== V_CO2[time]/T_HotFumes)
+@constraint(m, V_CH4[time]/T_CH4 .== 0.5 * V_H2O[time]/T_HotFumes)
+@constraint(m, V_CH4[time]/T_CH4 .== 0.5 * V_O2[time]/T_Air)
+
+# @constraint(m,V_CH4/T_CH4 + 2 * V_O2/T_Air .==  V_CO2/T_HotFumes + 2 * V_H2O/T_HotFumes)
 
 #Linearisation
-@constraint(m, -err_CH4_bound <= measurements.V_NaturalGas[1] - V_CH4 )
-@constraint(m, measurements.V_NaturalGas[1] - V_CH4  <= err_CH4_bound)
-@constraint(m, -err_Air_bound <= measurements.V_Air[1] - V_Air)
-@constraint(m, measurements.V_Air[1] - V_Air <= err_Air_bound)
-@constraint(m, -err_Hot_bound <= measurements.V_HotFumes[1] - V_HotFumes)
-@constraint(m, measurements.V_HotFumes[1] - V_HotFumes <= err_Hot_bound)
+@constraint(m, -err_CH4_bound[time] .<= measurements.V_NaturalGas[time] - V_CH4[time] )
+@constraint(m, measurements.V_NaturalGas[time] - V_CH4[time]  .<= err_CH4_bound[time])
+@constraint(m, -err_Air_bound[time] .<= measurements.V_Air[time] - V_Air[time])
+@constraint(m, measurements.V_Air[time] - V_Air[time] .<= err_Air_bound[time])
+@constraint(m, -err_Hot_bound[time] .<= measurements.V_HotFumes[time] - V_HotFumes[time])
+@constraint(m, measurements.V_HotFumes[time] - V_HotFumes[time] .<= err_Hot_bound[time])
 
 println("The optimization problem to be solved is:")
 print(m)
