@@ -102,9 +102,9 @@ prop_O2_C3H8 = 5
                                                                 .* V_HotFumes[time]/T_HotFumes)
 # Contrainte avec O2 
 @constraint(m, V_NG[time]/T_NG .== M_NG_Inv    * 0.21
-                                                ./  ( prop_CO2_CH4 * measurements.wi_NaturalGas[1][time] / M_CH4
-                                                    + prop_CO2_C2H6 * measurements.wi_NaturalGas[2][time] / M_C2H6
-                                                    + prop_CO2_C3H8 * measurements.wi_NaturalGas[3][time] / M_C3H8
+                                                ./  ( prop_O2_CH4 * measurements.wi_NaturalGas[1][time] / M_CH4
+                                                    + prop_O2_C2H6 * measurements.wi_NaturalGas[2][time] / M_C2H6
+                                                    + prop_O2_C3H8 * measurements.wi_NaturalGas[3][time] / M_C3H8
                                                     )
                                                 .* V_Air[time]/T_Air)
 #Linearisation
