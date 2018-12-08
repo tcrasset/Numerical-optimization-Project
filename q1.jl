@@ -7,7 +7,6 @@ Pkg.add("Clp")
 using Clp
 
 ###################################################
-
 # struct Measurements
 #     V_NaturalGas::Array{Float64}
 #     V_Air::Array{Float64}
@@ -18,8 +17,7 @@ using Clp
 ###################################################
 
 
-#------------------------ CONSTANTS --------------------------------------------------------
-
+#------------------------ CONSTANTS -----------------------------
 #Masses molaires
 M_CH4 = 16.04246
 M_O2 = 31.9988
@@ -41,13 +39,7 @@ coeff_Air = coeff_O2 + coeff_N2
 coeff_CO2 = 1
 coeff_H2O = 2
 
-#------------------------ END OF CONSTANTS --------------------------------------------------------
-
-
-#------------------------FUNCTIONS --------------------------------------------------------------
-
-#------------------------ MODEL ---------------------------------------------------------------------
-
+#------------------------ MODEL -----------------------------------
 measurements = loadDataFromFile("q1")
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
@@ -63,23 +55,11 @@ m = Model(solver=ClpSolver())
 
 @objective(m, Min, sum(err_NG_bound) + sum(err_Air_bound) + sum(err_Hot_bound))
 
-#Transformer les volumes d'air et de hotfumes en leur composants
-#N2 ne participe pas à la réaction
-# @constraint(m, V_CO2[time] .== V_HotFumes[time]/(1 + 2 + 2*(79/21)))
-# @constraint(m, V_H2O[time] .== (V_HotFumes[time] * 2)/(1 + 2 + 2*(79/21)))
-
-# # #Mettre l'eqaution en contraintes
-# @constraint(m, V_NG[time]/T_NG .== V_HotFumes[time]/(1 + 2 + 2*(79/21))/T_HotFumes)
-# @constraint(m, V_NG[time]/T_NG .== 0.5 * V_H2O[time]/T_HotFumes)
-# @constraint(m, V_NG[time]/T_NG .== 0.5 * V_O2[time]/T_Air)
-
 M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_CO2) * measurements.wi_Fumes[1][time] ./(M_CO2 * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_H2O) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
-@constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air) * (M_Air/M_O2))
-
-# @constraint(m,V_NG/T_NG + 2 * V_O2/T_Air .==  V_CO2/T_HotFumes + 2 * V_H2O/T_HotFumes)
+@constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air))
 
 #Linearisation
 @constraint(m, -err_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time] )
@@ -92,11 +72,9 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 println("The optimization problem to be solved is:")
 print(m)
 
-
 status = solve(m)
 	
 if(status == :Optimal)
-
     println("Objective value: ", getobjectivevalue(m))
     println(getvalue(err_NG_bound))
     println(getvalue(err_Air_bound))
@@ -105,4 +83,4 @@ if(status == :Optimal)
     println(getvalue(V_Air))
     println(getvalue(V_HotFumes))
 end
-
+""
