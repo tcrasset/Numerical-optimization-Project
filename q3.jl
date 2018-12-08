@@ -62,9 +62,9 @@ measurements = loadDataFromFile("q2")
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
+@variable(m, err_V_NG_bound[time] >= 0.0)
 @variable(m, err_V_Air_bound[time] >= 0.0)
 @variable(m, err_V_Hot_bound[time] >= 0.0)
-@variable(m, err_V_NG_bound[time] >= 0.0)
 
 @variable(m, err_w_CH4_bound[time] >= 0.0)
 @variable(m, err_w_C2H6_bound[time] >= 0.0)
@@ -72,8 +72,6 @@ time = 1:n_Obs
 
 @variable(m, err_w_CO2_bound[time] >= 0.0)
 @variable(m, err_w_H2O_bound[time] >= 0.0)
-@variable(m, err_w_O2_bound[time] >= 0.0)
-
 
 @variable(m,  V_NG[time] >= 0.0)
 @variable(m,  V_HotFumes[time] >= 0.0)
@@ -85,8 +83,6 @@ time = 1:n_Obs
 
 @variable(m, w_CO2[time] >= 0.0)
 @variable(m, w_H2O[time] >= 0.0)
-@variable(m, w_O2[time] >= 0.0)
-
 
 
 
@@ -161,6 +157,83 @@ prop_O2_C3H8 = 5
             *   1/M_H2O
 )
 
+#Linearisation
+@constraint(m, -err_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time])
+@constraint(m, measurements.V_NaturalGas[time] - V_NG[time]  .<= err_NG_bound[time])
+
+@constraint(m, -err_Air_bound[time] .<= measurements.V_Air[time] - V_Air[time])
+@constraint(m, measurements.V_Air[time] - V_Air[time] .<= err_Air_bound[time])
+
+@constraint(m, -err_Hot_bound[time] .<= measurements.V_HotFumes[time] - V_HotFumes[time])
+@constraint(m, measurements.V_HotFumes[time] - V_HotFumes[time] .<= err_Hot_bound[time])
+
+
+@constraint(m, -err_w_CH4_bound[time] .<= measurements.wi_NaturalGas[1][time] - w_CH4[time])
+@constraint(m, measurements.wi_NaturalGas[1][time] - w_CH4[time] .<= err_w_CH4_bound[time])
+
+@constraint(m, -err_w_C2H6_bound[time] .<= measurements.wi_NaturalGas[2][time] - w_C2H6[time])
+@constraint(m, measurements.wi_NaturalGas[2][time] - w_C2H6[time] .<= err_w_C2H6_bound[time])
+
+@constraint(m, -err_w_C3H8_bound[time] .<= measurements.wi_NaturalGas[3][time] - w_C3H8[time])
+@constraint(m, measurements.wi_NaturalGas[3][time] - w_C3H8[time] .<= err_w_C3H8_bound[time])
+
+
+@constraint(m, -err_w_CO2_bound[time] .<= measurements.wi_Fumes[1][time] - w_CO2[time])
+@constraint(m, measurements.wi_Fumes[1][time] - w_CO2[time] .<= err_w_CO2_bound[time])
+
+@constraint(m, -err_w_H2O_bound[time] .<= measurements.wi_Fumes[2][time] - w_H2O[time])
+@constraint(m, measurements.wi_Fumes[2][time] - w_H2O[time] .<= err_w_H2O_bound[time])
+
+
+
+
+
+@variable(m, w_CH4[time] >= 0.0)
+@variable(m, w_C2H6[time] >= 0.0)
+@variable(m, w_C3H8[time] >= 0.0)
+
+@variable(m, w_CO2[time] >= 0.0)
+@variable(m, w_H2O[time] >= 0.0)
+@variable(m, w_O2[time] >= 0.0)
+
+
+@variable(m, err_w_CH4_bound[time] >= 0.0)
+@variable(m, err_w_C2H6_bound[time] >= 0.0)
+@variable(m, err_w_C3H8_bound[time] >= 0.0)
+
+@variable(m, err_w_CO2_bound[time] >= 0.0)
+@variable(m, err_w_H2O_bound[time] >= 0.0)
+@variable(m, err_w_O2_bound[time] >= 0.0)
+
+
+println("The optimization problem to be solved is:")
+print(m)
+
+solve(m)
+
+println("Objective value: ", getobjectivevalue(m))
+println("===================================================================================")
+println(getvalue(err_V_NG_bound))
+println("===================================================================================")
+println(getvalue(err_V_Air_bound))
+println("===================================================================================")
+println(getvalue(err_V_Hot_bound))
+println("===================================================================================")
+println(getvalue(err_w_CH4_bound))
+println("===================================================================================")
+println(getvalue(err_w_C2H6_bound))
+println("===================================================================================")
+println(getvalue(err_w_C3H8_bound))
+println("===================================================================================")
+println(getvalue(err_w_CO2_bound))
+println("===================================================================================")
+println(getvalue(err_w_H2O_bound))
+println("===================================================================================")
+println(getvalue(V_NG))
+println("===================================================================================")
+println(getvalue(V_Air))
+println("===================================================================================")
+println(getvalue(V_HotFumes))
 
                 
                   
