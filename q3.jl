@@ -57,7 +57,7 @@ coeff_O2_C3H8 = 5
 
 
 #------------------------ MODEL ---------------------------------------------------------------------
-measurements = loadDataFromFile("q3")
+measurements = loadDataFromFile("q3_easy")
 
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
@@ -164,52 +164,14 @@ prop_O2_C3H8 = 5
                                                                 )
                                                                 .*(0.21 * M_O2 + 0.79 * M_N2)
 
-)
-
-
-
-
-
-
-
-
-
-
-
-
-
-# @constraint(m, measurements.V_NaturalGas[time]/T_NG .* ( (1 + err_w_CO2[time]) .*( prop_H2O_CH4 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[1][time]/M_CO2/M_CH4
-#                                                                                 + prop_H2O_C2H6 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[2][time]/M_CO2/M_C2H6      
-#                                                                                 + prop_H2O_C3H8 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[3][time]/M_CO2/M_C3H8
-#                                                                                 )
-#                                                         + (1 + err_w_H2O[time]) .* ( prop_H2O_CH4 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[1][time]/M_H2O/M_CH4
-#                                                                                     + prop_H2O_C2H6 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[2][time]/M_H2O/M_C2H6      
-#                                                                                     + prop_H2O_C3H8 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[3][time]/M_H2O/M_C3H8
-#                                                                                 )
-#                                                         + (1 + err_w_N2[time]) .* ( prop_H2O_CH4 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[1][time]/M_N2/M_CH4
-#                                                                                 + prop_H2O_C2H6 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[2][time]/M_N2/M_C2H6      
-#                                                                                 + prop_H2O_C3H8 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[3][time]/M_N2/M_C3H8
-#                                                                                 )
-#                                                     )
-#                                                     .==
-#                 measurements.V_HotFumes[time]/M_H2O/T_HotFumes .*((1/M_CH4) * measurements.wi_NaturalGas[1][time] .*(1 + err_w_CH4[time] + err_V_HotFumes[time] + err_w_H2O[time])
-#                                                                 +(1/M_C2H6) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C2H6[time] + err_V_HotFumes[time] + err_w_H2O[time])
-#                                                                 +(1/M_C3H8) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C3H8[time] + err_V_HotFumes[time] + err_w_H2O[time])
-#                                                                 )
-# )
-
-
-#Constraint de O2
-
+) 
 #Linearisation
-@constraint(m, -err_V_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time])
-@constraint(m, measurements.V_NaturalGas[time] - V_NG[time]  .<= err_V_NG_bound[time])
-
-@constraint(m, -err_V_Air_bound[time] .<= measurements.V_Air[time] - V_Air[time])
-@constraint(m, measurements.V_Air[time] - V_Air[time] .<= err_V_Air_bound[time])
-
-@constraint(m, -err_V_Hot_bound[time] .<= measurements.V_HotFumes[time] - V_HotFumes[time])
-@constraint(m, measurements.V_HotFumes[time] - V_HotFumes[time] .<= err_V_Hot_bound[time])
+@constraint(m, -err_V_NG_bound[time] .<= err_V_NG[time])
+@constraint(m,  err_V_NG[time]  .<= err_V_NG_bound[time])
+@constraint(m, -err_V_Air_bound[time] .<=  err_V_Air[time])
+@constraint(m, err_V_Air[time] .<= err_V_Air_bound[time])
+@constraint(m, -err_V_Hot_bound[time] .<= err_V_HotFumes[time])
+@constraint(m,  err_V_HotFumes[time] .<= err_V_Hot_bound[time])
 
 @constraint(m, -err_w_CH4_bound[time] .<= err_w_CH4[time])
 @constraint(m, err_w_CH4[time] .<= err_w_CH4_bound[time])
@@ -246,11 +208,7 @@ println(getvalue(err_w_CO2_bound))
 println("===================================================================================")
 println(getvalue(err_w_H2O_bound))
 println("===================================================================================")
-println(getvalue(V_NG))
-println("===================================================================================")
-println(getvalue(V_Air))
-println("===================================================================================")
-println(getvalue(V_HotFumes))
+
 
                 
                   
