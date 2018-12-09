@@ -2,9 +2,9 @@ include("./data_struct.jl")
 
 using Data
 using JuMP
-
-Pkg.add("Clp")
 using Clp
+using PyCall
+using PyPlot
 
 ###################################################
 # struct Measurements
@@ -18,7 +18,7 @@ using Clp
 
 
 #------------------------ CONSTANTS -----------------------------
-#Masses molaires
+# Molar masses
 M_CH4 = 16.04246
 M_O2 = 31.9988
 M_N2 = 28.0134
@@ -26,12 +26,12 @@ M_Air = 28.850334
 M_CO2 = 44.0095
 M_H2O = 18.01528
 
-#Temperature
+# Temperature
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
 T_HotFumes = 1600 + 273.15
 
-#Coefficients réactions
+# Reaction coefficients
 coeff_CH4 = 1
 coeff_O2 = 2
 coeff_N2 = 2 * (79/21)
@@ -61,7 +61,7 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_H2O) * measurements.wi_Fumes[2][time] ./(M_H2O * M_Fumes_Inv[time]) .* V_HotFumes[time]/T_HotFumes)
 @constraint(m, V_NG[time]/T_NG .== (coeff_CH4/coeff_O2) * 21/100 * (V_Air[time]/T_Air))
 
-#Linearisation
+#Linearisation of the absolute difference constraints
 @constraint(m, -err_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time] )
 @constraint(m, measurements.V_NaturalGas[time] - V_NG[time]  .<= err_NG_bound[time])
 @constraint(m, -err_Air_bound[time] .<= measurements.V_Air[time] - V_Air[time])
@@ -69,18 +69,38 @@ M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][ti
 @constraint(m, -err_Hot_bound[time] .<= measurements.V_HotFumes[time] - V_HotFumes[time])
 @constraint(m, measurements.V_HotFumes[time] - V_HotFumes[time] .<= err_Hot_bound[time])
 
-println("The optimization problem to be solved is:")
-print(m)
-
 status = solve(m)
-	
 if(status == :Optimal)
+
     println("Objective value: ", getobjectivevalue(m))
-    println(getvalue(err_NG_bound))
-    println(getvalue(err_Air_bound))
-    println(getvalue(err_Hot_bound))
-    println(getvalue(V_NG))
-    println(getvalue(V_Air))
-    println(getvalue(V_HotFumes))
+    println("Volume of Natural gases: ", getvalue(V_NG))
+    println("Volume of Hot Fumes: ", getvalue(V_HotFumes))
+    println("Volume of Air: ", getvalue(V_Air))
+    println("Error on Natural Gases volume: ", getvalue(err_NG_bound))
+    println("Error on Hot Fumes volume: ", getvalue(err_Hot_bound))
+    println("Error on Air volume: ", getvalue(err_Air_bound))
+    
+    figure()
+    suptitle("Natural Gas", fontsize=12)
+    plot(time, measurements.V_NaturalGas, "r", label="Data")
+    plot(time, [getvalue(err_NG_bound[t]) for t = time], "b", label="Clean Data")
+    xlabel("Time period")
+    ylabel("Natural Gas volume flow")
+    legend()
+
+    figure()
+    suptitle("Hot Fumes", fontsize=12)
+    plot(time, measurements.V_HotFumes, "r", label="Data")
+    plot(time, [getvalue(err_Hot_bound[t]) for t = time], "b", label="Clean Data")
+    xlabel("Time period")
+    ylabel("Hot Fumes volume flow")
+    legend()
+
+    figure()
+    suptitle("Air", fontsize=12)
+    plot(time, measurements.V_Air, "r", label="Data")
+    plot(time, [getvalue(err_Air_bound[t]) for t = time], "b", label="Clean Data")
+    xlabel("Time period")
+    ylabel("Air Volume flow")
+    legend()
 end
-""
