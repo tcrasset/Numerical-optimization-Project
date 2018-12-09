@@ -57,7 +57,7 @@ coeff_O2_C3H8 = 5
 
 
 #------------------------ MODEL ---------------------------------------------------------------------
-measurements = loadDataFromFile("q2")
+measurements = loadDataFromFile("q3")
 
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
@@ -72,6 +72,7 @@ time = 1:n_Obs
 
 @variable(m, err_w_CO2_bound[time] >= 0.0)
 @variable(m, err_w_H2O_bound[time] >= 0.0)
+@variable(m, err_w_O2_bound[time] >= 0.0)
 
 @variable(m, err_w_CH4[time] >= 0.0)
 @variable(m, err_w_C2H6[time] >= 0.0)
@@ -81,9 +82,9 @@ time = 1:n_Obs
 @variable(m, err_w_H2O[time] >= 0.0)
 @variable(m, err_w_N2[time] >= 0.0)
 
-@variable(m,  V_NG[time] >= 0.0)
-@variable(m,  V_HotFumes[time] >= 0.0)
-@variable(m,  V_Air[time] >= 0.0)
+@variable(m,  err_V_NG[time] >= 0.0)
+@variable(m,  err_V_HotFumes[time] >= 0.0)
+@variable(m,  err_V_Air[time] >= 0.0)
 
 
 @objective(m, Min, sum(err_V_NG_bound) + sum(err_V_Air_bound) + sum(err_V_Hot_bound)
@@ -112,45 +113,93 @@ prop_O2_C3H8 = 5
 
 
 #Constraint de CO2
-
-@constraint(m,  (
-                 (prop_CO2_CH4/M_CH4) *  (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[1][time] .* err_w_CO2[time] + err_w_CH4[time]  .* measurements.wi_Fumes[1][time])
-                +(prop_CO2_C2H6/M_C2H6)* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[2][time] .* err_w_CO2[time] + err_w_C2H6[time] .* measurements.wi_Fumes[1][time])
-                +(prop_CO2_C3H8/M_C3H8)* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[3][time] .* err_w_CO2[time] + err_w_C3H8[time] .* measurements.wi_Fumes[1][time])
-                ) .*  V_NG[time]/T_NG
-            ==  V_HotFumes[time]/T_HotFumes 
-                .*(   
-                 (1/(M_CH4 * M_CO2)) * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[1][time] .* err_w_CO2[time] + err_w_CH4[time]  .*  measurements.wi_Fumes[1][time])
-                +(1/(M_C2H6 * M_CO2))* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[2][time] .* err_w_CO2[time] + err_w_C2H6[time] .* measurements.wi_Fumes[1][time])
-                +(1/(M_C3H8 * M_CO2))* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[3][time] .* err_w_CO2[time] + err_w_C3H8[time] .* measurements.wi_Fumes[1][time])
-                +(1/(M_CH4 * M_H2O)) * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[1][time] .* err_w_H2O[time] + err_w_CH4[time]  .* measurements.wi_Fumes[2][time])
-                +(1/(M_C2H6 * M_H2O))* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[2][time] .* err_w_H2O[time] + err_w_C2H6[time] .* measurements.wi_Fumes[2][time])
-                +(1/(M_C3H8 * M_H2O))* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[3][time] .* err_w_H2O[time] + err_w_C3H8[time] .* measurements.wi_Fumes[2][time])
-                +(1/(M_CH4 * M_N2))  * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[1][time] .* err_w_N2[time] + err_w_CH4[time]   .* measurements.wi_Fumes[3][time])
-                +(1/(M_C2H6 * M_N2)) * (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[2][time] .* err_w_N2[time] + err_w_C2H6[time]  .* measurements.wi_Fumes[3][time])
-                +(1/(M_C3H8 * M_N2)) * (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[3][time] .* err_w_N2[time] + err_w_C3H8[time]  .* measurements.wi_Fumes[3][time])
-                ) *   1/M_CO2
+@constraint(m, measurements.V_NaturalGas[time]/T_NG .* (  (1 + err_w_CO2[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_CO2_CH4 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[1][time]/M_CO2/M_CH4)
+                                                        + (1 + err_w_CO2[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_CO2_C2H6 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[2][time]/M_CO2/M_C2H6)      
+                                                        + (1 + err_w_CO2[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_CO2_C3H8 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[3][time]/M_CO2/M_C3H8)
+                                                        + (1 + err_w_H2O[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_CO2_CH4 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[1][time]/M_H2O/M_CH4)
+                                                        + (1 + err_w_H2O[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_CO2_C2H6 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[2][time]/M_H2O/M_C2H6)      
+                                                        + (1 + err_w_H2O[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_CO2_C3H8 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[3][time]/M_H2O/M_C3H8)
+                                                                                
+                                                        + (1 + err_w_N2[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_CO2_CH4 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[1][time]/M_N2/M_CH4)
+                                                        + (1 + err_w_N2[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_CO2_C2H6 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[2][time]/M_N2/M_C2H6)      
+                                                        + (1 + err_w_N2[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_CO2_C3H8 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[3][time]/M_N2/M_C3H8)
+                                                        )
+                                                    
+                                                    .==
+                measurements.V_HotFumes[time]/M_CO2/T_HotFumes .*( (1/M_CH4) * measurements.wi_NaturalGas[1][time] .*(1 + err_w_CH4[time] + err_V_HotFumes[time] + err_w_CO2[time])
+                                                                +  (1/M_C2H6) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C2H6[time] + err_V_HotFumes[time] + err_w_CO2[time])
+                                                                +  (1/M_C3H8) * measurements.wi_NaturalGas[3][time] .*(1 + err_w_C3H8[time] + err_V_HotFumes[time] + err_w_CO2[time])
+                                                                )
 )
 
 #Constraint de H2O
-@constraint(m,  (
-                 (prop_H2O_CH4/M_CH4) *  (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[1][time] .* err_w_CO2[time] + err_w_CH4[time]  .*  measurements.wi_Fumes[1][time])
-                +(prop_H2O_C2H6/M_C2H6)* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[2][time] .* err_w_CO2[time] + err_w_C2H6[time] .* measurements.wi_Fumes[1][time])
-                +(prop_H2O_C3H8/M_C3H8)* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[3][time] .* err_w_CO2[time] + err_w_C3H8[time] .* measurements.wi_Fumes[1][time])
-                ).* V_NG[time]/T_NG 
-            ==  V_HotFumes[time]/T_HotFumes 
-                *(   
-                 (1/(M_CH4 * M_CO2)) * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[1][time] .* err_w_CO2[time] + err_w_CH4[time]  .* measurements.wi_Fumes[1][time])
-                +(1/(M_C2H6 * M_CO2))* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[2][time] .* err_w_CO2[time] + err_w_C2H6[time] .* measurements.wi_Fumes[1][time])
-                +(1/(M_C3H8 * M_CO2))* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[1][time] + measurements.wi_NaturalGas[3][time] .* err_w_CO2[time] + err_w_C3H8[time] .* measurements.wi_Fumes[1][time])
-                +(1/(M_CH4 * M_H2O)) * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[1][time] .* err_w_H2O[time] + err_w_CH4[time]  .* measurements.wi_Fumes[2][time])
-                +(1/(M_C2H6 * M_H2O))* (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[2][time] .* err_w_H2O[time] + err_w_C2H6[time] .* measurements.wi_Fumes[2][time])
-                +(1/(M_C3H8 * M_H2O))* (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[2][time] + measurements.wi_NaturalGas[3][time] .* err_w_H2O[time] + err_w_C3H8[time] .* measurements.wi_Fumes[2][time])
-                +(1/(M_CH4 * M_N2))  * (measurements.wi_NaturalGas[1][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[1][time] .* err_w_N2[time] + err_w_CH4[time]   .* measurements.wi_Fumes[3][time])
-                +(1/(M_C2H6 * M_N2)) * (measurements.wi_NaturalGas[2][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[2][time] .* err_w_N2[time] + err_w_C2H6[time]  .* measurements.wi_Fumes[3][time])
-                +(1/(M_C3H8 * M_N2)) * (measurements.wi_NaturalGas[3][time] .* measurements.wi_Fumes[3][time] + measurements.wi_NaturalGas[3][time] .* err_w_N2[time] + err_w_C3H8[time]  .* measurements.wi_Fumes[3][time])
-                )*   1/M_H2O
+@constraint(m, measurements.V_NaturalGas[time]/T_NG .* (  (1 + err_w_CO2[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_H2O_CH4 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[1][time]/M_CO2/M_CH4)
+                                                        + (1 + err_w_CO2[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_H2O_C2H6 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[2][time]/M_CO2/M_C2H6)      
+                                                        + (1 + err_w_CO2[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_H2O_C3H8 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[3][time]/M_CO2/M_C3H8)
+                                                        + (1 + err_w_H2O[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_H2O_CH4 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[1][time]/M_H2O/M_CH4)
+                                                        + (1 + err_w_H2O[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_H2O_C2H6 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[2][time]/M_H2O/M_C2H6)      
+                                                        + (1 + err_w_H2O[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_H2O_C3H8 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[3][time]/M_H2O/M_C3H8)
+                                                                                
+                                                        + (1 + err_w_N2[time] + err_w_CH4[time] + err_V_NG[time])  .*(prop_H2O_CH4 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[1][time]/M_N2/M_CH4)
+                                                        + (1 + err_w_N2[time] + err_w_C2H6[time] + err_V_NG[time]) .*(prop_H2O_C2H6 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[2][time]/M_N2/M_C2H6)      
+                                                        + (1 + err_w_N2[time] + err_w_C3H8[time] + err_V_NG[time]) .*(prop_H2O_C3H8 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[3][time]/M_N2/M_C3H8)
+                                                        )
+                                                    
+                                                    .==
+                measurements.V_HotFumes[time]/M_H2O/T_HotFumes .*( (1/M_CH4) * measurements.wi_NaturalGas[1][time] .*(1 + err_w_CH4[time] + err_V_HotFumes[time] + err_w_H2O[time])
+                                                                +  (1/M_C2H6) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C2H6[time] + err_V_HotFumes[time] + err_w_H2O[time])
+                                                                +  (1/M_C3H8) * measurements.wi_NaturalGas[3][time] .*(1 + err_w_C3H8[time] + err_V_HotFumes[time] + err_w_H2O[time])
+                                                                )
 )
+
+#Constraint on O2
+@constraint(m, measurements.V_NaturalGas[time]/T_NG .* (  (1 +  err_w_CH4[time] + err_V_NG[time])  .*(prop_O2_CH4 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[1][time]/M_CH4)
+                                                        + (1 +  err_w_C2H6[time] + err_V_NG[time]) .*(prop_O2_C2H6 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[2][time]/M_C2H6)      
+                                                        + (1 +  err_w_C3H8[time] + err_V_NG[time]) .*(prop_O2_C3H8 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[3][time]/M_C3H8)
+                                                       )
+                                                    .==
+                measurements.V_Air[time]* 0.21 * M_Air/T_Air .* (  (1/M_CH4) * measurements.wi_NaturalGas[1][time] .*(1 + err_w_CH4[time] + err_V_Air[time])
+                                                                +  (1/M_C2H6) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C2H6[time] + err_V_Air[time])
+                                                                +  (1/M_C3H8) * measurements.wi_NaturalGas[3][time] .*(1 + err_w_C3H8[time] + err_V_Air[time])
+                                                                )
+                                                                .*(0.21 * M_O2 + 0.79 * M_N2)
+
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
+# @constraint(m, measurements.V_NaturalGas[time]/T_NG .* ( (1 + err_w_CO2[time]) .*( prop_H2O_CH4 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[1][time]/M_CO2/M_CH4
+#                                                                                 + prop_H2O_C2H6 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[2][time]/M_CO2/M_C2H6      
+#                                                                                 + prop_H2O_C3H8 * measurements.wi_Fumes[1][time] .* measurements.wi_NaturalGas[3][time]/M_CO2/M_C3H8
+#                                                                                 )
+#                                                         + (1 + err_w_H2O[time]) .* ( prop_H2O_CH4 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[1][time]/M_H2O/M_CH4
+#                                                                                     + prop_H2O_C2H6 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[2][time]/M_H2O/M_C2H6      
+#                                                                                     + prop_H2O_C3H8 * measurements.wi_Fumes[2][time] .* measurements.wi_NaturalGas[3][time]/M_H2O/M_C3H8
+#                                                                                 )
+#                                                         + (1 + err_w_N2[time]) .* ( prop_H2O_CH4 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[1][time]/M_N2/M_CH4
+#                                                                                 + prop_H2O_C2H6 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[2][time]/M_N2/M_C2H6      
+#                                                                                 + prop_H2O_C3H8 * measurements.wi_Fumes[3][time] .* measurements.wi_NaturalGas[3][time]/M_N2/M_C3H8
+#                                                                                 )
+#                                                     )
+#                                                     .==
+#                 measurements.V_HotFumes[time]/M_H2O/T_HotFumes .*((1/M_CH4) * measurements.wi_NaturalGas[1][time] .*(1 + err_w_CH4[time] + err_V_HotFumes[time] + err_w_H2O[time])
+#                                                                 +(1/M_C2H6) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C2H6[time] + err_V_HotFumes[time] + err_w_H2O[time])
+#                                                                 +(1/M_C3H8) * measurements.wi_NaturalGas[2][time] .*(1 + err_w_C3H8[time] + err_V_HotFumes[time] + err_w_H2O[time])
+#                                                                 )
+# )
+
+
+#Constraint de O2
 
 #Linearisation
 @constraint(m, -err_V_NG_bound[time] .<= measurements.V_NaturalGas[time] - V_NG[time])
