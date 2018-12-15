@@ -1,10 +1,11 @@
 include("./data_struct.jl")
-
+using Clp
 using Data
 using JuMP
+using PyCall
+using PyPlot
 
-Pkg.add("Clp")
-using Clp
+
 
 ###################################################
 # struct Measurements
@@ -82,5 +83,37 @@ if(status == :Optimal)
     println(getvalue(V_NG))
     println(getvalue(V_Air))
     println(getvalue(V_HotFumes))
+
+    print("------------ VOLUME NATURAL GAZ -------------------")
+    print(V_NG)
+    print("---------------- VOLUME AIR -----------------------")
+    print(V_Air)
+    print("------------- VOLUME HOT FUMES --------------------")
+    print(V_HotFumes)
+
+    figure()
+    suptitle("Natural Gas", fontsize=12)
+    plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Natural Gas volume flow")
+    legend()
+
+
+    figure()
+    suptitle("Air", fontsize=12)
+    plot(time, measurements.V_Air, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_Air[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Air Volume flow")
+    legend()
+
+    figure()
+    suptitle("Hot Fumes", fontsize=12)
+    plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_HotFumes[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Hot Fumes volume flow")
+    legend()
 end
 ""
