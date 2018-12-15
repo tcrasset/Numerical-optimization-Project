@@ -5,8 +5,6 @@ using JuMP
 using PyCall
 using PyPlot
 
-
-
 ###################################################
 
 # struct Measurements
@@ -19,8 +17,7 @@ using PyPlot
 ###################################################
 
 #------------------------ CONSTANTS --------------------------------------------------------
-
-#Masses molaires
+# Molar masses
 M_CH4 = 16.04246
 M_C2H6 = 30.06904
 M_C3H8 = 44.09562
@@ -30,15 +27,23 @@ M_Air = 28.850334
 M_CO2 = 44.0095
 M_H2O = 18.01528
 M_NG = M_CH4 + M_C2H6 + M_C3H8
-
-#Temperature
+# Temperature
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
 T_HotFumes = 1600 + 273.15
 
 #------------------------ END OF CONSTANTS --------------------------------------------------------
 
-
+#Fumes proportions for 1 MOLE of NG
+prop_CO2_CH4 = 1
+prop_H2O_CH4 = 2    
+prop_O2_CH4 = 2
+prop_CO2_C2H6 = 2
+prop_H2O_C2H6 = 3
+prop_O2_C2H6 = 3.5
+prop_CO2_C3H8 = 3 
+prop_H2O_C3H8 = 4
+prop_O2_C3H8 = 5
 
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q3_easy")
@@ -46,6 +51,7 @@ measurements = loadDataFromFile("q3_easy")
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
+
 @variable(m, err_V_NG_bound[time] >= 0.0)
 @variable(m, err_V_Air_bound[time] >= 0.0)
 @variable(m, err_V_Hot_bound[time] >= 0.0)
@@ -77,23 +83,11 @@ time = 1:n_Obs
 
 #Transformer les volumes d'air et de hotfumes en leur composants
 #N2 ne participe pas à la réaction
-
 # M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 # M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGas[2][time]/M_C2H6 + measurements.wi_NaturalGas[3][time]/M_C3H8
 # M_Air_Inv = 1/(0.21 * M_O2 + 0.79 * M_N2)
 
-#Proportions fumes POUR 1 MOLE de NG
-prop_CO2_CH4 = 1
-prop_H2O_CH4 = 2    
-prop_O2_CH4 = 2
 
-prop_CO2_C2H6 = 2  # 1 mol
-prop_H2O_C2H6 = 3 # 1 mol
-prop_O2_C2H6 = 3.5
-
-prop_CO2_C3H8 = 3 
-prop_H2O_C3H8 = 4
-prop_O2_C3H8 = 5
 
 #Constraint on CO2
 
@@ -232,6 +226,7 @@ if(status == :Optimal)
     ylabel("Hot Fumes volume flow")
     legend()
 end
+
                   
                 
                
