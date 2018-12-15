@@ -1,10 +1,10 @@
 include("./data_struct.jl")
-
+using Clp
 using Data
 using JuMP
+using PyCall
+using PyPlot
 
-Pkg.add("Clp")
-using Clp
 
 ###################################################
 
@@ -33,23 +33,6 @@ M_NG = M_CH4 + M_C2H6 + M_C3H8
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
 T_HotFumes = 1600 + 273.15
-
-#Coefficients réactions
-coeff_CH4 = 1
-coeff_CO2_CH4 = 1
-coeff_H2O_CH4 = 2
-coeff_O2_CH4 = 2
-
-coeff_C2H6 = 2
-coeff_CO2_C2H6 = 4
-coeff_H2O_C2H6 = 6
-coeff_O2_C2H6 = 7
-
-coeff_C3H8 = 1
-coeff_CO2_C3H8 = 3
-coeff_H2O_C3H8 = 4
-coeff_O2_C3H8 = 5
-
 
 #------------------------ MODEL ---------------------------------------------------------------------
 measurements = loadDataFromFile("q2")
@@ -122,18 +105,47 @@ prop_O2_C3H8 = 5
 println("The optimization problem to be solved is:")
 print(m)
 
-solve(m)
+status = solve(m)
 
-println("Objective value: ", getobjectivevalue(m))
-println("===================================================================================")
-println(getvalue(err_NG_bound))
-println("===================================================================================")
-println(getvalue(err_Air_bound))
-println("===================================================================================")
-println(getvalue(err_Hot_bound))
-println("===================================================================================")
-println(getvalue(V_NG))
-println("===================================================================================")
-println(getvalue(V_Air))
-println("===================================================================================")
-println(getvalue(V_HotFumes))
+
+if(status == :Optimal)
+    
+    println("Objective value: ", getobjectivevalue(m))
+    println("===================================================================================")
+    println(getvalue(err_NG_bound))
+    println("===================================================================================")
+    println(getvalue(err_Air_bound))
+    println("===================================================================================")
+    println(getvalue(err_Hot_bound))
+    println("===================================================================================")
+    println(getvalue(V_NG))
+    println("===================================================================================")
+    println(getvalue(V_Air))
+    println("===================================================================================")
+    println(getvalue(V_HotFumes))
+        
+    figure()
+    suptitle("Natural Gas", fontsize=12)
+    plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Natural Gas volume flow")
+    legend()
+
+
+    figure()
+    suptitle("Air", fontsize=12)
+    plot(time, measurements.V_Air, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_Air[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Air Volume flow")
+    legend()
+
+    figure()
+    suptitle("Hot Fumes", fontsize=12)
+    plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
+    plot(time, [ getvalue(V_HotFumes[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("Hot Fumes volume flow")
+    legend()
+end
