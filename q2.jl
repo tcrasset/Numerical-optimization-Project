@@ -62,7 +62,6 @@ time = 1:n_Obs
 # Transform air and hot fumes volumes in thier components (N2 does not participate in the reaction)
 M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGas[2][time]/M_C2H6 + measurements.wi_NaturalGas[3][time]/M_C3H8
-M_Air_Inv = 1/(0.21 * M_O2 + 0.79 * M_N2)
 
 # Constraint with CO2
 @constraint(m, V_NG[time]/T_NG .==  (M_NG_Inv./M_Fumes_Inv)   .* (measurements.wi_Fumes[1][time]/M_CO2)
@@ -125,6 +124,8 @@ if(status == :Optimal)
     ylabel("Natural Gas volume flow")
     legend()
 
+    
+
 
     figure()
     suptitle("Air", fontsize=12)
@@ -133,7 +134,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("Air Volume flow")
     legend()
-
+    
     figure()
     suptitle("Hot Fumes", fontsize=12)
     plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")

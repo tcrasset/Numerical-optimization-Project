@@ -46,7 +46,7 @@ prop_H2O_C3H8 = 4
 prop_O2_C3H8 = 5
 
 #------------------------ MODEL ---------------------------------------------------------------------
-measurements = loadDataFromFile("q3_easy")
+measurements = loadDataFromFile("q3")
 
 m = Model(solver=ClpSolver())
 n_Obs = length(measurements.V_NaturalGas)
@@ -64,30 +64,22 @@ time = 1:n_Obs
 @variable(m, err_w_H2O_bound[time] >= 0.0)
 @variable(m, err_w_O2_bound[time] >= 0.0)
 
-@variable(m, err_w_CH4[time] >= 0.0)
-@variable(m, err_w_C2H6[time] >= 0.0)
-@variable(m, err_w_C3H8[time] >= 0.0)
+@variable(m, err_w_CH4[time])
+@variable(m, err_w_C2H6[time])
+@variable(m, err_w_C3H8[time])
 
-@variable(m, err_w_CO2[time] >= 0.0)
-@variable(m, err_w_H2O[time] >= 0.0)
-@variable(m, err_w_N2[time] >= 0.0)
+@variable(m, err_w_CO2[time])
+@variable(m, err_w_H2O[time])
+@variable(m, err_w_N2[time])
 
-@variable(m,  err_V_NG[time] >= 0.0)
-@variable(m,  err_V_HotFumes[time] >= 0.0)
-@variable(m,  err_V_Air[time] >= 0.0)
+@variable(m,  err_V_NG[time])
+@variable(m,  err_V_HotFumes[time])
+@variable(m,  err_V_Air[time])
 
 
 @objective(m, Min, sum(err_V_NG_bound) + sum(err_V_Air_bound) + sum(err_V_Hot_bound)
                 + sum(err_w_CH4_bound) + sum(err_w_C2H6_bound) + sum(err_w_C3H8_bound)
                 + sum(err_w_CO2_bound) + sum(err_w_H2O_bound))
-
-#Transformer les volumes d'air et de hotfumes en leur composants
-#N2 ne participe pas à la réaction
-# M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
-# M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGas[2][time]/M_C2H6 + measurements.wi_NaturalGas[3][time]/M_C3H8
-# M_Air_Inv = 1/(0.21 * M_O2 + 0.79 * M_N2)
-
-
 
 #Constraint on CO2
 
@@ -136,7 +128,8 @@ time = 1:n_Obs
 #Constraint on O2
 @constraint(m, 0.21 * measurements.V_Air[time]/T_Air .* ( measurements.wi_NaturalGas[1][time]/M_CH4 .* (1 +  err_w_CH4[time] + err_V_Air[time] )
                                                         + measurements.wi_NaturalGas[2][time]/M_C2H6 .* (1 +  err_w_C2H6[time] + err_V_Air[time] )
-                                                        + measurements.wi_NaturalGas[3][time]/M_C3H8 .* (1 +  err_w_C3H8[time] + err_V_Air[time] ))
+                                                        + measurements.wi_NaturalGas[3][time]/M_C3H8 .* (1 +  err_w_C3H8[time] + err_V_Air[time] )
+                                                        )
                                                         .==
                 measurements.V_NaturalGas[time]/T_NG .* (  prop_O2_CH4 * measurements.wi_NaturalGas[1][time]/M_CH4 .* (1 +  err_w_CH4[time] + err_V_NG[time]) 
                                                         + prop_O2_C2H6 * measurements.wi_NaturalGas[2][time]/M_C2H6 .* (1 +  err_w_C2H6[time] + err_V_NG[time]) 
@@ -179,51 +172,90 @@ print(m)
 
 status = solve(m)
 if(status == :Optimal)
-    println("Objective value: ", getobjectivevalue(m))
-    println("===================================================================================")
-    println(getvalue(err_V_NG_bound))
-    println("===================================================================================")
-    print("V_NG:")
-    println(measurements.V_NaturalGas[time])
-    println(getvalue(err_V_Air_bound))
-    println("===================================================================================")
-    println(getvalue(err_V_Hot_bound))
-    println("===================================================================================")
-    println(getvalue(err_w_CH4_bound))
-    println("===================================================================================")
-    println(getvalue(err_w_C2H6_bound))
-    println("===================================================================================")
-    println(getvalue(err_w_C3H8_bound))
-    println("===================================================================================")
-    println(getvalue(err_w_CO2_bound))
-    println("===================================================================================")
-    println(getvalue(err_w_H2O_bound))
-    println("===================================================================================")
+    # println("Objective value: ", getobjectivevalue(m))
+    # println("===================================================================================")
+    # println(getvalue(err_V_NG))
+    # println("===================================================================================")
+    # println(getvalue(err_V_Air))
+    # println("===================================================================================")
+    # println(getvalue(err_V_HotFumes))
+    # println("===================================================================================")
+    # println(getvalue(err_w_CH4))
+    # println("===================================================================================")
+    # println(getvalue(err_w_C2H6))
+    # println("===================================================================================")
+    # println(getvalue(err_w_C3H8))
+    # println("===================================================================================")
+    # println(getvalue(err_w_CO2))
+    # println("===================================================================================")
+    # println(getvalue(err_w_H2O))
+    # println("===================================================================================")
+    # println(getvalue(err_w_N2))
+    # println("===================================================================================")
 
 
-    figure()
-    suptitle("Natural Gas", fontsize=12)
+    # figure()
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
-    plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    plot(time, [ measurements.V_NaturalGas[t] * (1 +getvalue(err_V_NG[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Natural Gas volume flow")
     legend()
 
-
     figure()
-    suptitle("Air", fontsize=12)
     plot(time, measurements.V_Air, linestyle=":",linewidth=2, label="Data")
-    plot(time, [ getvalue(V_Air[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    plot(time, [ measurements.V_Air[t] * (1 +getvalue(err_V_Air[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Air Volume flow")
     legend()
 
     figure()
-    suptitle("Hot Fumes", fontsize=12)
     plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
-    plot(time, [ getvalue(V_HotFumes[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    plot(time, [ measurements.V_HotFumes[t] * (1 +getvalue(err_V_HotFumes[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Hot Fumes volume flow")
+    legend()
+
+    figure()
+    plot(time, measurements.wi_NaturalGas[1], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_NaturalGas[1][t] * (1 +getvalue(err_w_CH4[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("CH4 mass percent")
+    legend()
+
+    figure()
+    plot(time, measurements.wi_NaturalGas[2], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_NaturalGas[2][t] * (1 +getvalue(err_w_C2H6[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("C2H6 mass percent")
+    legend()
+
+    figure()
+    plot(time, measurements.wi_NaturalGas[3], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_NaturalGas[3][t] * (1 +getvalue(err_w_C3H8[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("C3H8 mass percent")
+    legend()
+
+    figure()
+    plot(time, measurements.wi_Fumes[1], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_Fumes[1][t] * (1 +getvalue(err_w_CO2[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("CO2 mass percent")
+    legend()   
+    
+    
+    figure()
+    plot(time, measurements.wi_Fumes[2], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_Fumes[2][t] * (1 +getvalue(err_w_H2O[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("H2O mass percent")
+    legend()
+
+    figure()
+    plot(time, measurements.wi_Fumes[3], linestyle=":",linewidth=2, label="Data")
+    plot(time, [ measurements.wi_Fumes[3][t] * (1 +getvalue(err_w_N2[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    xlabel("Time period")
+    ylabel("N2 mass percent")
     legend()
 end
 
