@@ -2,16 +2,8 @@ include("./data_struct.jl")
 using Clp
 using Data
 using JuMP
-<<<<<<< HEAD
 using PyCall
 using PyPlot
-
-
-=======
-using Clp
-using PyCall
-using PyPlot
->>>>>>> 40be3613c7eea66728386a250ca4fd89c27ac5f9
 
 ###################################################
 # struct Measurements
@@ -81,7 +73,6 @@ status = solve(m)
 if(status == :Optimal)
 
     println("Objective value: ", getobjectivevalue(m))
-<<<<<<< HEAD
     println(getvalue(err_NG_bound))
     println(getvalue(err_Air_bound))
     println(getvalue(err_Hot_bound))
@@ -100,30 +91,9 @@ if(status == :Optimal)
     suptitle("Natural Gas", fontsize=12)
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
     plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
-=======
-    println("===================================================================================")
-    println("Volume of Natural gases: ", getvalue(V_NG))
-    println("===================================================================================")
-    println("Volume of Air: ", getvalue(V_Air))
-    println("===================================================================================")
-    println("Volume of Hot Fumes: ", getvalue(V_HotFumes))
-    println("===================================================================================")
-    println("Error on Natural Gases volume: ", getvalue(err_NG_bound))
-    println("===================================================================================")
-    println("Error on Air volume: ", getvalue(err_Air_bound))
-    println("===================================================================================")
-    println("Error on Hot Fumes volume: ", getvalue(err_Hot_bound))
-    
-    figure()
-    suptitle("Natural Gas", fontsize=12)
-    plot(time, measurements.V_NaturalGas, "r", label="Data")
-    plot(time, [getvalue(err_NG_bound[t]) for t = time], "b", label="Clean Data")
->>>>>>> 40be3613c7eea66728386a250ca4fd89c27ac5f9
     xlabel("Time period")
     ylabel("Natural Gas volume flow")
     legend()
-
-<<<<<<< HEAD
 
     figure()
     suptitle("Air", fontsize=12)
@@ -139,21 +109,6 @@ if(status == :Optimal)
     plot(time, [ getvalue(V_HotFumes[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Hot Fumes volume flow")
-=======
-    figure()
-    suptitle("Hot Fumes", fontsize=12)
-    plot(time, measurements.V_HotFumes, "r", label="Data")
-    plot(time, [getvalue(err_Hot_bound[t]) for t = time], "b", label="Clean Data")
-    xlabel("Time period")
-    ylabel("Hot Fumes volume flow")
-    legend()
 
-    figure()
-    suptitle("Air", fontsize=12)
-    plot(time, measurements.V_Air, "r", label="Data")
-    plot(time, [getvalue(err_Air_bound[t]) for t = time], "b", label="Clean Data")
-    xlabel("Time period")
-    ylabel("Air Volume flow")
->>>>>>> 40be3613c7eea66728386a250ca4fd89c27ac5f9
     legend()
 end
