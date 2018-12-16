@@ -2,6 +2,7 @@ include("./data_struct.jl")
 include("./sensitivity_gurobi.jl")
 using Gurobi
 using Data
+using Ipopt
 using JuMP
 using PyCall
 using PyPlot
