@@ -62,7 +62,7 @@ time = 1:n_Obs
 
 @variable(m, err_w_CO2_bound[time] >= 0.0)
 @variable(m, err_w_H2O_bound[time] >= 0.0)
-@variable(m, err_w_O2_bound[time] >= 0.0)
+@variable(m, err_w_N2_bound[time] >= 0.0)
 
 @variable(m, err_w_CH4[time])
 @variable(m, err_w_C2H6[time])
@@ -79,7 +79,7 @@ time = 1:n_Obs
 
 @objective(m, Min, sum(err_V_NG_bound) + sum(err_V_Air_bound) + sum(err_V_Hot_bound)
                 + sum(err_w_CH4_bound) + sum(err_w_C2H6_bound) + sum(err_w_C3H8_bound)
-                + sum(err_w_CO2_bound) + sum(err_w_H2O_bound))
+                + sum(err_w_CO2_bound) + sum(err_w_H2O_bound) + sum(err_w_N2_bound))
 
 #Constraint on CO2
 
@@ -166,6 +166,8 @@ time = 1:n_Obs
 @constraint(m,  err_w_CO2[time] .<= err_w_CO2_bound[time])
 @constraint(m, -err_w_H2O_bound[time] .<= err_w_H2O[time])
 @constraint(m, err_w_H2O[time] .<= err_w_H2O_bound[time])
+@constraint(m, -err_w_N2_bound[time] .<= err_w_N2[time])
+@constraint(m, err_w_N2[time] .<= err_w_N2_bound[time])
 
 println("The optimization problem to be solved is:")
 print(m)
