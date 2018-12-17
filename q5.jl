@@ -80,9 +80,9 @@ time = 1:n_Obs
 @variable(m,  err_V_Air[time])
 
 
-@objective(m, Min, sum(err_V_NG_bound[time] + err_V_Air_bound[time] + err_V_HotFumes_bound[time]
-                + err_w_CH4_bound[time] + err_w_C2H6_bound[time] + err_w_C3H8_bound[time]
-                + err_w_CO2_bound[time] + err_w_H2O_bound[time] + err_w_N2_bound[time]))
+@objective(m, Min, sum(err_V_NG_bound[t] + err_V_Air_bound[t] + err_V_HotFumes_bound[t]
+                + err_w_CH4_bound[t] + err_w_C2H6_bound[t] + err_w_C3H8_bound[t]
+                + err_w_CO2_bound[t] + err_w_H2O_bound[t] + err_w_N2_bound[t] for t=time))
 #Constraint on CO2
 
 CO2_constr = @constraint(m, (measurements.wi_Fumes[1][time]/M_CO2) .* (measurements.V_HotFumes[time]/T_HotFumes) .* ( (measurements.wi_NaturalGas[1][time]/M_CH4) .* (1 + err_V_HotFumes[time] + err_w_CH4[time] + err_w_CO2[time])
@@ -103,8 +103,7 @@ CO2_constr = @constraint(m, (measurements.wi_Fumes[1][time]/M_CO2) .* (measureme
                                                                                                                             +  (measurements.wi_Fumes[3][time]/M_N2 .* (1 + err_w_N2[time] + err_w_C3H8[time] + err_V_NG[time]))
                                                                                                                         )
                                                             )  
-)                                 
-         
+)
 #Constraint on H2O
 
 H2O_constr = @constraint(m, (measurements.wi_Fumes[2][time]/M_H2O) .* (measurements.V_HotFumes[time]/T_HotFumes) .* ( (measurements.wi_NaturalGas[1][time]/M_CH4) .* (1 + err_V_HotFumes[time] + err_w_CH4[time] + err_w_H2O[time])
@@ -125,7 +124,7 @@ H2O_constr = @constraint(m, (measurements.wi_Fumes[2][time]/M_H2O) .* (measureme
                                                                                                                             +  (measurements.wi_Fumes[3][time]/M_N2 .* (1 + err_w_N2[time] + err_w_C3H8[time] + err_V_NG[time]))
                                                                                                                         )
                                                             )  
-)        
+)
 
 #Constraint on O2
 O2_constr = @constraint(m, 0.21 * measurements.V_Air[time]/T_Air .* ( measurements.wi_NaturalGas[1][time]/M_CH4 .* (1 +  err_w_CH4[time] + err_V_Air[time] )
@@ -154,7 +153,15 @@ errVNG_constr = @constraint(m,[t in time],  norm(err_V_NG[t]) <=  err_V_NG_bound
 errVAir_constr = @constraint(m,[t in time], norm(err_V_Air[t])<=  err_V_Air_bound[t])
 errVHot_constr = @constraint(m,[t in time],  norm(err_V_HotFumes[t])<=  err_V_HotFumes_bound[t])
 
-errwCH4_constr = @constraint(m,[t in time], norm(err_w_CH4[t]) <= err_w_CH4_bound[t])
+errwCH4_constr = @constraint(m,[t in time], norm(err_w_CH4[t]) <= err[t in time]
+[t in time]
+[t in time]
+[t in time]
+[t in time]
+[t in time]
+[t in time]
+[t in time]
+[t in time]_w_CH4_bound[t])
 errwC2J6_constr = @constraint(m,[t in time], norm(err_w_C2H6[t])<=  err_w_C2H6_bound[t])
 errwC3H8_constr = @constraint(m,[t in time], norm(err_w_C3H8[t])<=  err_w_C3H8_bound[t])
 
