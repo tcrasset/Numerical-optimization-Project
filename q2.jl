@@ -3,7 +3,6 @@ using Clp
 using Data
 using JuMP
 
-
 ###################################################
 
 # struct Measurements
@@ -26,11 +25,11 @@ M_Air = 28.850334
 M_CO2 = 44.0095
 M_H2O = 18.01528
 M_NG = M_CH4 + M_C2H6 + M_C3H8
+
 # Temperature
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
 T_HotFumes = 1600 + 273.15
-#------------------------ MODEL ---------------------------------------------------------------------
 
 #Fumes proportions for 1 MOLE of NG
 prop_CO2_CH4 = 1
@@ -43,6 +42,7 @@ prop_CO2_C3H8 = 3
 prop_H2O_C3H8 = 4
 prop_O2_C3H8 = 5
 
+#------------------------ MODEL ---------------------------------
 measurements = loadDataFromFile("q2")
 
 m = Model(solver=ClpSolver())
@@ -59,7 +59,7 @@ time = 1:n_Obs
 
 @objective(m, Min, sum(err_NG_bound) + sum(err_Air_bound) + sum(err_Hot_bound))
 
-# Transform air and hot fumes volumes in thier components (N2 does not participate in the reaction)
+# Transform air and hot fumes volumes in their components (N2 does not participate in the reaction)
 M_Fumes_Inv = measurements.wi_Fumes[1][time]/M_CO2 + measurements.wi_Fumes[2][time]/M_H2O + measurements.wi_Fumes[3][time]/M_N2
 M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGas[2][time]/M_C2H6 + measurements.wi_NaturalGas[3][time]/M_C3H8
 
@@ -94,12 +94,7 @@ M_NG_Inv = measurements.wi_NaturalGas[1][time]/M_CH4 + measurements.wi_NaturalGa
 @constraint(m, measurements.V_HotFumes[time] - V_HotFumes[time] .<= err_Hot_bound[time])
 
 
-println("The optimization problem to be solved is:")
-print(m)
-
 status = solve(m)
-
-
 if(status == :Optimal)
     
     println("Objective value: ", getobjectivevalue(m))

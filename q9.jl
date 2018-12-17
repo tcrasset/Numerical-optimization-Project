@@ -18,7 +18,7 @@ using PyPlot
 # end
 ###################################################
 
-#------------------------ CONSTANTS --------------------------------------------------------
+#------------------------ CONSTANTS -------------------------------------
 # Molar masses
 M_CH4 = 16.04246
 M_C2H6 = 30.06904
@@ -29,6 +29,7 @@ M_Air = 28.850334
 M_CO2 = 44.0095
 M_H2O = 18.01528
 M_NG = M_CH4 + M_C2H6 + M_C3H8
+
 # Temperature
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
@@ -78,11 +79,8 @@ N2_poly_coeff  = [A_N2, B_N2, C_N2, D_N2, E_N2, F_N2, G_N2, H_N2]
 CH4_heat_comb = 802.34
 C2H6_heat_comb = 1437.2
 C3H8_heat_comb = 2044.2
-#------------------------ END OF CONSTANTS --------------------------------------------------------
 
-
-# #------------------------ MODEL ---------------------------------------------------------------------
-
+#------------------------ MODEL ---------------------------------------
 measurements = loadDataFromFile("q3")
 
 m = Model(solver = IpoptSolver())
@@ -92,11 +90,9 @@ time = 1:n_Obs
 @variable(m, err_V_NG_bound[time] >= 0.0)
 @variable(m, err_V_Air_bound[time] >= 0.0)
 @variable(m, err_V_Hot_bound[time] >= 0.0)
-
 @variable(m, err_w_CH4_bound[time] >= 0.0)
 @variable(m, err_w_C2H6_bound[time] >= 0.0)
 @variable(m, err_w_C3H8_bound[time] >= 0.0)
-
 @variable(m, err_w_CO2_bound[time] >= 0.0)
 @variable(m, err_w_H2O_bound[time] >= 0.0)
 @variable(m, err_w_N2_bound[time] >= 0.0)
@@ -104,11 +100,9 @@ time = 1:n_Obs
 @variable(m, err_w_CH4[time])
 @variable(m, err_w_C2H6[time])
 @variable(m, err_w_C3H8[time])
-
 @variable(m, err_w_CO2[time])
 @variable(m, err_w_H2O[time])
 @variable(m, err_w_N2[time])
-
 @variable(m,  err_V_NG[time])
 @variable(m,  err_V_Hot[time])
 @variable(m,  err_V_Air[time])
@@ -120,7 +114,6 @@ time = 1:n_Obs
                 + sum(err_w_CO2_bound) + sum(err_w_H2O_bound) + sum(err_w_N2_bound))
 
 #Constraint on CO2
-
 @NLconstraint(m, [t in time], (measurements.wi_Fumes[1][t]/M_CO2) * (measurements.V_HotFumes[t]/(T_HotFumes[t]*1000)) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_CO2[t])
                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_CO2[t])
@@ -142,7 +135,6 @@ time = 1:n_Obs
 )
 
 #Constraint on H2O
-
 @NLconstraint(m, [t in time], (measurements.wi_Fumes[2][t]/M_H2O) * (measurements.V_HotFumes[t]/(T_HotFumes[t]*1000)) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_H2O[t])
                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_H2O[t])
                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_H2O[t])
@@ -176,25 +168,22 @@ time = 1:n_Obs
 )
 
 #Energy conservation
-@NLconstraint(m, [t in time], measurements.V_NaturalGas[t]*(1 + err_V_NG[t]) * T_HotFumes[t]*1000 *   
-                                                        (measurements.wi_Fumes[1][t]/M_CO2*(1+err_w_CO2[t]) 
-                                                        + measurements.wi_Fumes[2][t]/M_H2O*(1+err_w_H2O[t]) 
-                                                        + measurements.wi_Fumes[3][t]/M_N2*(1+err_w_N2[t])) * 
-                                                            (measurements.wi_NaturalGas[1][t]/M_CH4 * (1 + err_w_CH4[t]) * CH4_heat_comb 
-                                                            + measurements.wi_NaturalGas[2][t]/M_C2H6 * (1 + err_w_C2H6[t]) * C2H6_heat_comb 
-                                                            + measurements.wi_NaturalGas[3][t]/M_C3H8 * (1 + err_w_C3H8[t]) * C3H8_heat_comb) 
+@NLconstraint(m, [t in time], measurements.V_NaturalGas[t]*(1 + err_V_NG[t]) * T_HotFumes[t]*1000 * (measurements.wi_Fumes[1][t]/M_CO2*(1+err_w_CO2[t]) 
+                                                                                                        + measurements.wi_Fumes[2][t]/M_H2O*(1+err_w_H2O[t]) 
+                                                                                                        + measurements.wi_Fumes[3][t]/M_N2*(1+err_w_N2[t]))
+                                                                                                * (measurements.wi_NaturalGas[1][t]/M_CH4 * (1 + err_w_CH4[t]) * CH4_heat_comb 
+                                                                                                        + measurements.wi_NaturalGas[2][t]/M_C2H6 * (1 + err_w_C2H6[t]) * C2H6_heat_comb 
+                                                                                                        + measurements.wi_NaturalGas[3][t]/M_C3H8 * (1 + err_w_C3H8[t]) * C3H8_heat_comb) 
                                                         ==  
-
-                                                    measurements.V_HotFumes[t]*(1 + err_V_Hot[t]) * T_NG * 
-                                                        (measurements.wi_NaturalGas[1][t]/M_CH4*(1+err_w_CH4[t]) 
-                                                        + measurements.wi_NaturalGas[2][t]/M_C2H6*(1+err_w_C2H6[t]) 
-                                                        + measurements.wi_NaturalGas[3][t]/M_C3H8*(1+err_w_C3H8[t])) * 
-                                                            (measurements.wi_Fumes[1][t]/M_CO2 * (1 + err_w_CO2[t]) * 
-                                                                (CO2_poly_coeff[1]*T_HotFumes[t]+ CO2_poly_coeff[2]*T_HotFumes[t]^2/2 + CO2_poly_coeff[3]*T_HotFumes[t]^3/3 + CO2_poly_coeff[4]*T_HotFumes[t]^4/4 + CO2_poly_coeff[5]/T_HotFumes[t] + CO2_poly_coeff[6] - CO2_poly_coeff[8]) 
-                                                            + measurements.wi_Fumes[2][t]/M_H2O * (1 + err_w_H2O[t]) * 
-                                                                (H2O_poly_coeff[1]*T_HotFumes[t] + H2O_poly_coeff[2]*T_HotFumes[t]^2/2 + H2O_poly_coeff[3]*T_HotFumes[t]^3/3 + H2O_poly_coeff[4]*T_HotFumes[t]^4/4 + H2O_poly_coeff[5]/T_HotFumes[t] + H2O_poly_coeff[6] - H2O_poly_coeff[8])
-                                                            + measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t]) * 
-                                                                (N2_poly_coeff[1]*T_HotFumes[t] + N2_poly_coeff[2]*T_HotFumes[t]^2/2 + N2_poly_coeff[3]*T_HotFumes[t]^3/3 + N2_poly_coeff[4]*T_HotFumes[t]^4/4 + N2_poly_coeff[5]/T_HotFumes[t] + N2_poly_coeff[6] - N2_poly_coeff[8]))
+                                measurements.V_HotFumes[t]*(1 + err_V_Hot[t]) * T_NG * (measurements.wi_NaturalGas[1][t]/M_CH4*(1+err_w_CH4[t]) 
+                                                                                            + measurements.wi_NaturalGas[2][t]/M_C2H6*(1+err_w_C2H6[t]) 
+                                                                                            + measurements.wi_NaturalGas[3][t]/M_C3H8*(1+err_w_C3H8[t]))
+                                                                                    * (measurements.wi_Fumes[1][t]/M_CO2 * (1 + err_w_CO2[t]) * 
+                                                                                            (CO2_poly_coeff[1]*T_HotFumes[t]+ CO2_poly_coeff[2]*T_HotFumes[t]^2/2 + CO2_poly_coeff[3]*T_HotFumes[t]^3/3 + CO2_poly_coeff[4]*T_HotFumes[t]^4/4 + CO2_poly_coeff[5]/T_HotFumes[t] + CO2_poly_coeff[6] - CO2_poly_coeff[8]) 
+                                                                                        + measurements.wi_Fumes[2][t]/M_H2O * (1 + err_w_H2O[t]) * 
+                                                                                            (H2O_poly_coeff[1]*T_HotFumes[t] + H2O_poly_coeff[2]*T_HotFumes[t]^2/2 + H2O_poly_coeff[3]*T_HotFumes[t]^3/3 + H2O_poly_coeff[4]*T_HotFumes[t]^4/4 + H2O_poly_coeff[5]/T_HotFumes[t] + H2O_poly_coeff[6] - H2O_poly_coeff[8])
+                                                                                        + measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t]) * 
+                                                                                            (N2_poly_coeff[1]*T_HotFumes[t] + N2_poly_coeff[2]*T_HotFumes[t]^2/2 + N2_poly_coeff[3]*T_HotFumes[t]^3/3 + N2_poly_coeff[4]*T_HotFumes[t]^4/4 + N2_poly_coeff[5]/T_HotFumes[t] + N2_poly_coeff[6] - N2_poly_coeff[8]))
 )
 
 
@@ -230,16 +219,14 @@ time = 1:n_Obs
                                                                 + N2_poly_coeff[5]/(T_HotFumes[t]-0.6))
 )
 
-
-#Natural gaz mass fractions
+# Constraints on the sum of mass fractions
 @constraint(m, [t in time], measurements.wi_NaturalGas[1][t] * (1 + err_w_CH4[t])
 + measurements.wi_NaturalGas[2][t] * (1 + err_w_C2H6[t]) 
 + measurements.wi_NaturalGas[3][t] * (1 + err_w_C3H8[t]) == 1)
 
-#Hot Fumes mass fractions
 @constraint(m,[t in time], measurements.wi_Fumes[1][t] * (1 + err_w_CO2[t])
 + measurements.wi_Fumes[2][t] * (1 + err_w_H2O[t]) 
-             + measurements.wi_Fumes[3][t] * (1 + err_w_N2[t]) == 1)
++ measurements.wi_Fumes[3][t] * (1 + err_w_N2[t]) == 1)
 
 #Errors bounds
 @NLconstraint(m,[t in time], err_V_NG[t]^2 <= err_V_NG_bound[t])
@@ -251,9 +238,7 @@ time = 1:n_Obs
 @NLconstraint(m,[t in time], err_w_CH4[t]^2 <= err_w_CH4_bound[t])
 @NLconstraint(m,[t in time], err_w_C2H6[t]^2 <= err_w_C2H6_bound[t])
 @NLconstraint(m,[t in time], err_w_C3H8[t]^2 <= err_w_C3H8_bound[t])
-             
-# println("The optimization problem to be solved is:")
-# print(m)
+
 
 status = solve(m)
 if(status == :Optimal)

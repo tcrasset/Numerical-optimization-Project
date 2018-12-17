@@ -80,13 +80,6 @@ if(status == :Optimal)
     println(getvalue(V_Air))
     println(getvalue(V_HotFumes))
 
-    print("------------ VOLUME NATURAL GAZ -------------------")
-    print(V_NG)
-    print("---------------- VOLUME AIR -----------------------")
-    print(V_Air)
-    print("------------- VOLUME HOT FUMES --------------------")
-    print(V_HotFumes)
-
     figure()
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
     plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")

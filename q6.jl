@@ -17,7 +17,7 @@ using PyPlot
 # end
 ###################################################
 
-#------------------------ CONSTANTS --------------------------------------------------------
+#------------------------ CONSTANTS -------------------------------------
 # Molar masses
 M_CH4 = 16.04246
 M_C2H6 = 30.06904
@@ -28,11 +28,11 @@ M_Air = 28.850334
 M_CO2 = 44.0095
 M_H2O = 18.01528
 M_NG = M_CH4 + M_C2H6 + M_C3H8
+
 # Temperature
 T_NG = 25 + 273.15
 T_Air = 25 + 273.15
 T_HotFumes = 1600 + 273.15
-
 
 #Fumes proportions for 1 MOLE of NG
 prop_CO2_CH4 = 1
@@ -44,9 +44,8 @@ prop_O2_C2H6 = 3.5
 prop_CO2_C3H8 = 3 
 prop_H2O_C3H8 = 4
 prop_O2_C3H8 = 5
-#------------------------ END OF CONSTANTS --------------------------------------------------------
 
-#------------------------ MODEL ---------------------------------------------------------------------
+#------------------------ MODEL ------------------------------------------
 measurements = loadDataFromFile("q3")
 
 m = Model(solver=GurobiSolver())
@@ -56,11 +55,9 @@ time = 1:n_Obs
 @variable(m, err_V_NG_bound[time] >= 0.0)
 @variable(m, err_V_Air_bound[time] >= 0.0)
 @variable(m, err_V_Hot_bound[time] >= 0.0)
-
 @variable(m, err_w_CH4_bound[time] >= 0.0)
 @variable(m, err_w_C2H6_bound[time] >= 0.0)
 @variable(m, err_w_C3H8_bound[time] >= 0.0)
-
 @variable(m, err_w_CO2_bound[time] >= 0.0)
 @variable(m, err_w_H2O_bound[time] >= 0.0)
 @variable(m, err_w_N2_bound[time] >= 0.0)
@@ -68,11 +65,9 @@ time = 1:n_Obs
 @variable(m, err_w_CH4[time])
 @variable(m, err_w_C2H6[time])
 @variable(m, err_w_C3H8[time])
-
 @variable(m, err_w_CO2[time])
 @variable(m, err_w_H2O[time])
 @variable(m, err_w_N2[time])
-
 @variable(m,  err_V_NG[time])
 @variable(m,  err_V_HotFumes[time])
 @variable(m,  err_V_Air[time])
@@ -91,6 +86,7 @@ time = 1:n_Obs
                                                                                         + (measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t] + err_V_Air[t]))
                                                                                         )
 )
+
 #Constraint on H2O
 @constraint(m, H2O_constraint[t in time], (measurements.wi_Fumes[2][t]/M_H2O) * (measurements.V_HotFumes[t]/T_HotFumes) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_HotFumes[t] + err_w_CH4[t] + err_w_H2O[t])
                                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_HotFumes[t] + err_w_C2H6[t] + err_w_H2O[t])
@@ -126,18 +122,17 @@ time = 1:n_Obs
 ) 
 
 
-# Natural gaz mass fractions
+# Constraints on the sum of mass fractions
 @constraint(m, measurements.wi_NaturalGas[1][time] .* (1 + err_w_CH4[time])
 + measurements.wi_NaturalGas[2][time] .* (1 + err_w_C2H6[time]) 
 + measurements.wi_NaturalGas[3][time] .* (1 + err_w_C3H8[time]) .== 1)
-# Hot fumes mass fractions
+
 @constraint(m, measurements.wi_Fumes[1][time] .* (1 + err_w_CO2[time])
 + measurements.wi_Fumes[2][time] .* (1 + err_w_H2O[time]) 
 + measurements.wi_Fumes[3][time] .* (1 + err_w_N2[time]) .== 1)
 
 
-# Linearization
-
+# Linearisation of the absolute difference constraints
 @constraint(m,[t in time], err_V_NG[t]*measurements.V_NaturalGas[t] <= err_V_NG_bound[t])
 @constraint(m,[t in time], err_V_NG[t]*measurements.V_NaturalGas[t] >= -err_V_NG_bound[t])
 @constraint(m,[t in time], err_V_Air[t]*measurements.V_Air[t] <= err_V_Air_bound[t])
@@ -158,31 +153,29 @@ time = 1:n_Obs
 @constraint(m,[t in time], err_w_C3H8[t]*measurements.wi_NaturalGas[3][t] >= -err_w_C3H8_bound[t])
 
 
-println("The optimization problem to be solved is:")
-print(m)
-
 status = solve(m)
 if(status == :Optimal)
-    # println("Objective value: ", getobjectivevalue(m))
-    # println("===================================================================================")
-    # println(getvalue(err_V_NG))
-    # println("===================================================================================")
-    # println(getvalue(err_V_Air))
-    # println("===================================================================================")
-    # println(getvalue(err_V_HotFumes))
-    # println("===================================================================================")
-    # println(getvalue(err_w_CH4))
-    # println("===================================================================================")
-    # println(getvalue(err_w_C2H6))
-    # println("===================================================================================")
-    # println(getvalue(err_w_C3H8))
-    # println("===================================================================================")
-    # println(getvalue(err_w_CO2))
-    # println("===================================================================================")
-    # println(getvalue(err_w_H2O))
-    # println("===================================================================================")
-    # println(getvalue(err_w_N2))
-    # println("===================================================================================")
+
+    println("Objective value: ", getobjectivevalue(m))
+    println("===================================================================================")
+    println(getvalue(err_V_NG))
+    println("===================================================================================")
+    println(getvalue(err_V_Air))
+    println("===================================================================================")
+    println(getvalue(err_V_HotFumes))
+    println("===================================================================================")
+    println(getvalue(err_w_CH4))
+    println("===================================================================================")
+    println(getvalue(err_w_C2H6))
+    println("===================================================================================")
+    println(getvalue(err_w_C3H8))
+    println("===================================================================================")
+    println(getvalue(err_w_CO2))
+    println("===================================================================================")
+    println(getvalue(err_w_H2O))
+    println("===================================================================================")
+    println(getvalue(err_w_N2))
+    println("===================================================================================")
     
     print("Natural gaz : Lower bound : ")
     print(maximum(getBasisBoundsGurobi(O2_constraint)[1]))
@@ -193,8 +186,7 @@ if(status == :Optimal)
     print("Hot Fumes : Upper bound : ")
     print(maximum(getBasisBoundsGurobi(CO2_constraint)[2]))
     
-    
-    # figure()
+    figure()
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
     plot(time, [ measurements.V_NaturalGas[t] * (1 +getvalue(err_V_NG[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
@@ -242,7 +234,6 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("CO2 mass percent")
     legend()   
-    
     
     figure()
     plot(time, measurements.wi_Fumes[2], linestyle=":",linewidth=2, label="Data")
