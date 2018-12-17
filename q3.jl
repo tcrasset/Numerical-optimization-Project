@@ -204,7 +204,7 @@ if(status == :Optimal)
 
     figure()
     plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
-    plot(time, [ measurements.V_HotFumes[t] * (1 +getvalue(err_V_Hot[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
+    plot(time, [ measurements.V_HotFumes[t] * (1 +getvalue(err_V_HotFumes[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Hot Fumes volume flow")
     legend()
