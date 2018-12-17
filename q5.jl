@@ -153,15 +153,7 @@ errVNG_constr = @constraint(m,[t in time],  norm(err_V_NG[t]) <=  err_V_NG_bound
 errVAir_constr = @constraint(m,[t in time], norm(err_V_Air[t])<=  err_V_Air_bound[t])
 errVHot_constr = @constraint(m,[t in time],  norm(err_V_HotFumes[t])<=  err_V_HotFumes_bound[t])
 
-errwCH4_constr = @constraint(m,[t in time], norm(err_w_CH4[t]) <= err[t in time]
-[t in time]
-[t in time]
-[t in time]
-[t in time]
-[t in time]
-[t in time]
-[t in time]
-[t in time]_w_CH4_bound[t])
+errwCH4_constr = @constraint(m,[t in time], norm(err_w_CH4[t]) <= err_w_CH4_bound[t])
 errwC2J6_constr = @constraint(m,[t in time], norm(err_w_C2H6[t])<=  err_w_C2H6_bound[t])
 errwC3H8_constr = @constraint(m,[t in time], norm(err_w_C3H8[t])<=  err_w_C3H8_bound[t])
 
