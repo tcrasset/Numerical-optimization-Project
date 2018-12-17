@@ -79,22 +79,8 @@ CH4_heat_comb = 802.34
 C2H6_heat_comb = 1437.2
 C3H8_heat_comb = 2044.2
 #------------------------ END OF CONSTANTS --------------------------------------------------------
-function heat_absorbed(temp, gaz)
-    """
-    Temperature in K
-    Gaz = 1,2 or 3 for [ 'CO2', 'H2O, 'N2' ] respectively
-    """
-    temp = temp/1000
-    if gaz == 1
-        coeff = CO2_poly_coeff
-    elseif gaz == 2
-        coeff = H2O_poly_coeff
-    elseif gaz == 3
-        coeff = N2_poly_coeff
-    end
-    return coeff[1]*temp + coeff[2]/2 * temp^2 + coeff[3]/3 * temp^3
-            coeff[4]/4 * temp^4 - coeff[5]/temp + coeff[6] - coeff[8]
-end
+
+
 # #------------------------ MODEL ---------------------------------------------------------------------
 
 measurements = loadDataFromFile("q3")
@@ -189,39 +175,7 @@ time = 1:n_Obs
                                                                         )
 )
 
-#Registering user defined function
-JuMP.register(m, :heat_absorbed, 2, heat_absorbed, autodiff=true)
-
 # #Temperature constraint
-# @NLconstraint(m, [t in time], measurements.V_NaturalGas[t]/T_NG *( measurements.wi_NaturalGas[1][t]/M_CH4 * CH4_heat_comb*((measurements.wi_Fumes[1][t]/M_CO2 * (1 + err_w_CO2[t] + err_w_CH4[t] + err_V_NG[t]))
-#                                                                                                                         +  (measurements.wi_Fumes[2][t]/M_H2O * (1 + err_w_H2O[t] + err_w_CH4[t] + err_V_NG[t]))
-#                                                                                                                         +  (measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t] + err_w_CH4[t] + err_V_NG[t]))
-#                                                                                                                          ) 
-#                                                             +  measurements.wi_NaturalGas[2][t]/M_C2H6 * C2H6_heat_comb* ((measurements.wi_Fumes[1][t]/M_CO2 * (1 + err_w_CO2[t] + err_w_C2H6[t] + err_V_NG[t]))
-#                                                                                                                         + (measurements.wi_Fumes[2][t]/M_H2O * (1 + err_w_H2O[t] + err_w_C2H6[t] + err_V_NG[t]))
-#                                                                                                                         + (measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t] + err_w_C2H6[t] + err_V_NG[t]))
-#                                                                                                                          ) 
-#                                                             +  measurements.wi_NaturalGas[3][t]/M_C3H8 * C3H8_heat_comb* ((measurements.wi_Fumes[1][t]/M_CO2 * (1 + err_w_CO2[t] + err_w_C3H8[t] + err_V_NG[t]))
-#                                                                                                                         + (measurements.wi_Fumes[2][t]/M_H2O * (1 + err_w_H2O[t] + err_w_C3H8[t] + err_V_NG[t]))
-#                                                                                                                         + (measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t] + err_w_C3H8[t] + err_V_NG[t]))
-#                                                                                                                          )
-#                                                                 )
-#                                                     ==
-#             measurements.V_HotFumes[t]/(T_HotFumes[t]*1000) * ( measurements.wi_Fumes[1][t]/M_CO2 * heat_absorbed(T_HotFumes[t],1) *((measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
-#                                                                                                                             + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_CO2[t])
-#                                                                                                                             + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_CO2[t])
-#                                                                                                                              )
-#                                                         + measurements.wi_Fumes[2][t]/M_H2O * heat_absorbed(T_HotFumes[t],2) * (  (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_H2O[t])
-#                                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_H2O[t])
-#                                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_H2O[t])
-#                                                                                                                                 )
-#                                                         + measurements.wi_Fumes[3][t]/M_N2 * heat_absorbed(T_HotFumes[t],3) * (   (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_N2[t])
-#                                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_N2[t])
-#                                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_N2[t])
-#                                                                                                                                 )
-#                                                         )
-# )
-
 @NLconstraint(m, [t in time], measurements.V_NaturalGas[t]*(1 + err_V_NG[t]) * T_HotFumes[t]*1000 *   
                                                         (measurements.wi_Fumes[1][t]/M_CO2*(1+err_w_CO2[t]) 
                                                         + measurements.wi_Fumes[2][t]/M_H2O*(1+err_w_H2O[t]) 
@@ -243,16 +197,17 @@ JuMP.register(m, :heat_absorbed, 2, heat_absorbed, autodiff=true)
                                                                 (N2_poly_coeff[1]*T_HotFumes[t] + N2_poly_coeff[2]*T_HotFumes[t]^2/2 + N2_poly_coeff[3]*T_HotFumes[t]^3/3 + N2_poly_coeff[4]*T_HotFumes[t]^4/4 + N2_poly_coeff[5]/T_HotFumes[t] + N2_poly_coeff[6] - N2_poly_coeff[8]))
 )
 
-
+#Natural gaz mass fractions
 @constraint(m, [t in time], measurements.wi_NaturalGas[1][t] * (1 + err_w_CH4[t])
-             + measurements.wi_NaturalGas[2][t] * (1 + err_w_C2H6[t]) 
-             + measurements.wi_NaturalGas[3][t] * (1 + err_w_C3H8[t]) == 1)
++ measurements.wi_NaturalGas[2][t] * (1 + err_w_C2H6[t]) 
++ measurements.wi_NaturalGas[3][t] * (1 + err_w_C3H8[t]) == 1)
 
+#Hot Fumes mass fractions
 @constraint(m,[t in time], measurements.wi_Fumes[1][t] * (1 + err_w_CO2[t])
-             + measurements.wi_Fumes[2][t] * (1 + err_w_H2O[t]) 
++ measurements.wi_Fumes[2][t] * (1 + err_w_H2O[t]) 
              + measurements.wi_Fumes[3][t] * (1 + err_w_N2[t]) == 1)
 
-
+#Errors bounds
 @NLconstraint(m,[t in time], err_V_NG[t]^2 <= err_V_NG_bound[t])
 @NLconstraint(m,[t in time], err_V_Air[t]^2 <= err_V_Air_bound[t])
 @NLconstraint(m,[t in time], err_V_Hot[t]^2 <= err_V_Hot_bound[t])
@@ -332,6 +287,15 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("N2 mass percent")
     legend()
+
+
+    figure()
+    plot(time, [getvalue(T_HotFumes[t])* 1000 for t in time] , linestyle="-",linewidth=2)
+    xlabel("Time period")
+    ylabel("Temperature (K)")
+    legend()
+
+
     print(getvalue(T_HotFumes))
 end
 
