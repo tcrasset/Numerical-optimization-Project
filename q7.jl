@@ -97,9 +97,9 @@ function heat_absorbed(temp, gaz)
 end
 # #------------------------ MODEL ---------------------------------------------------------------------
 
-measurements = loadDataFromFile("q3_easy")
+measurements = loadDataFromFile("q3")
 
-m = Model(solver = JuniperSolver(IpoptSolver()))
+m = Model(solver = IpoptSolver())
 n_Obs = length(measurements.V_NaturalGas)
 time = 1:n_Obs
 
@@ -127,7 +127,7 @@ time = 1:n_Obs
 @variable(m,  err_V_Hot[time])
 @variable(m,  err_V_Air[time])
 
-@variable(m, T_HotFumes[time] >= 0.0, start = (1600 + 273.15)/1000)
+@variable(m, T_HotFumes[time] >= 0.0, start = 1.87315)
 
 @objective(m, Min, sum(err_V_NG_bound) + sum(err_V_Air_bound) + sum(err_V_Hot_bound)
                 + sum(err_w_CH4_bound) + sum(err_w_C2H6_bound) + sum(err_w_C3H8_bound)
@@ -135,7 +135,7 @@ time = 1:n_Obs
 
 #Constraint on CO2
 
-@NLconstraint(m, [t in time], (measurements.wi_Fumes[1][t]/M_CO2) * (measurements.V_HotFumes[t]/T_HotFumes[t]*1000) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
+@NLconstraint(m, [t in time], (measurements.wi_Fumes[1][t]/M_CO2) * (measurements.V_HotFumes[t]/(T_HotFumes[t]*1000)) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_CO2[t])
                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_CO2[t])
                                                                                                         )
@@ -157,7 +157,7 @@ time = 1:n_Obs
 
 #Constraint on H2O
 
-@NLconstraint(m, [t in time], (measurements.wi_Fumes[2][t]/M_H2O) * (measurements.V_HotFumes[t]/T_HotFumes[t]*1000) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_H2O[t])
+@NLconstraint(m, [t in time], (measurements.wi_Fumes[2][t]/M_H2O) * (measurements.V_HotFumes[t]/(T_HotFumes[t]*1000)) * ( (measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_H2O[t])
                                                                                                                 + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_H2O[t])
                                                                                                                 + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_H2O[t])
                                                                                                                 )
@@ -207,7 +207,7 @@ JuMP.register(m, :heat_absorbed, 2, heat_absorbed, autodiff=true)
 #                                                                                                                          )
 #                                                                 )
 #                                                     ==
-#             measurements.V_HotFumes[t]/T_HotFumes[t] * ( measurements.wi_Fumes[1][t]/M_CO2 * heat_absorbed(T_HotFumes[t],1) *((measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
+#             measurements.V_HotFumes[t]/(T_HotFumes[t]*1000) * ( measurements.wi_Fumes[1][t]/M_CO2 * heat_absorbed(T_HotFumes[t],1) *((measurements.wi_NaturalGas[1][t]/M_CH4) * (1 + err_V_Hot[t] + err_w_CH4[t] + err_w_CO2[t])
 #                                                                                                                             + (measurements.wi_NaturalGas[2][t]/M_C2H6) * (1 + err_V_Hot[t] + err_w_C2H6[t] + err_w_CO2[t])
 #                                                                                                                             + (measurements.wi_NaturalGas[3][t]/M_C3H8) * (1 + err_V_Hot[t] + err_w_C3H8[t] + err_w_CO2[t])
 #                                                                                                                              )
@@ -253,18 +253,16 @@ JuMP.register(m, :heat_absorbed, 2, heat_absorbed, autodiff=true)
              + measurements.wi_Fumes[3][t] * (1 + err_w_N2[t]) == 1)
 
 
-errVNG_constr = @NLconstraint(m,[t in time],  err_V_NG[t]^2 <=  err_V_NG_bound[t])
-errVAir_constr = @NLconstraint(m,[t in time], err_V_Air[t]^2 <=  err_V_Air_bound[t])
-errVHot_constr = @NLconstraint(m,[t in time],  err_V_Hot[t]^2 <=  err_V_Hot_bound[t])
-
-errwCH4_constr = @NLconstraint(m,[t in time], err_w_CH4[t]^2 <= err_w_CH4_bound[t])
-errwC2J6_constr = @NLconstraint(m,[t in time], err_w_C2H6[t]^2 <=  err_w_C2H6_bound[t])
-errwC3H8_constr = @NLconstraint(m,[t in time], err_w_C3H8[t]^2 <=  err_w_C3H8_bound[t])
-
-errwH2O_constr = @NLconstraint(m,[t in time], err_w_H2O[t]^2 <=  err_w_H2O_bound[t])
-errwCO2_constr = @NLconstraint(m,[t in time], err_w_CO2[t]^2 <= err_w_CO2_bound[t])
-errwN2_constr = @NLconstraint(m, [t in time], err_w_N2[t]^2 <= err_w_N2_bound[t])
-
+@NLconstraint(m,[t in time], err_V_NG[t]^2 <= err_V_NG_bound[t])
+@NLconstraint(m,[t in time], err_V_Air[t]^2 <= err_V_Air_bound[t])
+@NLconstraint(m,[t in time], err_V_Hot[t]^2 <= err_V_Hot_bound[t])
+@NLconstraint(m,[t in time], err_w_CO2[t]^2 <= err_w_CO2_bound[t])
+@NLconstraint(m,[t in time], err_w_H2O[t]^2 <= err_w_H2O_bound[t])
+@NLconstraint(m,[t in time], err_w_N2[t]^2 <= err_w_N2_bound[t])
+@NLconstraint(m,[t in time], err_w_CH4[t]^2 <= err_w_CH4_bound[t])
+@NLconstraint(m,[t in time], err_w_C2H6[t]^2 <= err_w_C2H6_bound[t])
+@NLconstraint(m,[t in time], err_w_C3H8[t]^2 <= err_w_C3H8_bound[t])
+             
 # println("The optimization problem to be solved is:")
 # print(m)
 
