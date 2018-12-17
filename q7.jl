@@ -175,7 +175,7 @@ time = 1:n_Obs
                                                                         )
 )
 
-# #Temperature constraint
+#Energy conservation
 @NLconstraint(m, [t in time], measurements.V_NaturalGas[t]*(1 + err_V_NG[t]) * T_HotFumes[t]*1000 *   
                                                         (measurements.wi_Fumes[1][t]/M_CO2*(1+err_w_CO2[t]) 
                                                         + measurements.wi_Fumes[2][t]/M_H2O*(1+err_w_H2O[t]) 
@@ -196,6 +196,10 @@ time = 1:n_Obs
                                                             + measurements.wi_Fumes[3][t]/M_N2 * (1 + err_w_N2[t]) * 
                                                                 (N2_poly_coeff[1]*T_HotFumes[t] + N2_poly_coeff[2]*T_HotFumes[t]^2/2 + N2_poly_coeff[3]*T_HotFumes[t]^3/3 + N2_poly_coeff[4]*T_HotFumes[t]^4/4 + N2_poly_coeff[5]/T_HotFumes[t] + N2_poly_coeff[6] - N2_poly_coeff[8]))
 )
+
+
+
+
 
 #Natural gaz mass fractions
 @constraint(m, [t in time], measurements.wi_NaturalGas[1][t] * (1 + err_w_CH4[t])
@@ -223,13 +227,13 @@ time = 1:n_Obs
 
 status = solve(m)
 if(status == :Optimal)
-
     figure()
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
     plot(time, [ measurements.V_NaturalGas[t] * (1 +getvalue(err_V_NG[t])) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Natural Gas volume flow")
     legend()
+    savefig("q7_V_NG.svg")
 
     figure()
     plot(time, measurements.V_Air, linestyle=":",linewidth=2, label="Data")
@@ -237,6 +241,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("Air Volume flow")
     legend()
+    savefig("q7_V_Air.svg")
 
     figure()
     plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
@@ -244,6 +249,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("Hot Fumes volume flow")
     legend()
+    savefig("q7_V_HF.svg")
 
     figure()
     plot(time, measurements.wi_NaturalGas[1], linestyle=":",linewidth=2, label="Data")
@@ -251,6 +257,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("CH4 mass percent")
     legend()
+    savefig("q7_w_CH4.svg")
 
     figure()
     plot(time, measurements.wi_NaturalGas[2], linestyle=":",linewidth=2, label="Data")
@@ -258,6 +265,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("C2H6 mass percent")
     legend()
+    savefig("q7_w_C2H6.svg")
 
     figure()
     plot(time, measurements.wi_NaturalGas[3], linestyle=":",linewidth=2, label="Data")
@@ -265,6 +273,8 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("C3H8 mass percent")
     legend()
+    savefig("q7_w_C3H8.svg")
+
 
     figure()
     plot(time, measurements.wi_Fumes[1], linestyle=":",linewidth=2, label="Data")
@@ -272,6 +282,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("CO2 mass percent")
     legend()   
+    savefig("q7_w_CO2.svg")
     
     
     figure()
@@ -280,6 +291,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("H2O mass percent")
     legend()
+    savefig("q7_w_H2O.svg")
 
     figure()
     plot(time, measurements.wi_Fumes[3], linestyle=":",linewidth=2, label="Data")
@@ -287,6 +299,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("N2 mass percent")
     legend()
+    savefig("q7_w_N2.svg")
 
 
     figure()
@@ -294,6 +307,7 @@ if(status == :Optimal)
     xlabel("Time period")
     ylabel("Temperature (K)")
     legend()
+    savefig("q7_HF.svg")
 
 
     print(getvalue(T_HotFumes))

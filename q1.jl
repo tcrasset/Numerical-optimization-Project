@@ -88,27 +88,26 @@ if(status == :Optimal)
     print(V_HotFumes)
 
     figure()
-    suptitle("Natural Gas", fontsize=12)
     plot(time, measurements.V_NaturalGas, linestyle=":",linewidth=2, label="Data")
     plot(time, [ getvalue(V_NG[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Natural Gas volume flow")
     legend()
+    savefig("q1_V_NG.svg")
 
     figure()
-    suptitle("Air", fontsize=12)
     plot(time, measurements.V_Air, linestyle=":",linewidth=2, label="Data")
     plot(time, [ getvalue(V_Air[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Air Volume flow")
     legend()
-
+    savefig("q1_V_Air.svg")
+    
     figure()
-    suptitle("Hot Fumes", fontsize=12)
     plot(time, measurements.V_HotFumes, linestyle=":",linewidth=2, label="Data")
     plot(time, [ getvalue(V_HotFumes[t]) for t = time ], linestyle="-",linewidth=2, label="Clean Data")
     xlabel("Time period")
     ylabel("Hot Fumes volume flow")
-
     legend()
+    savefig("q1_V_HF.svg")
 end
